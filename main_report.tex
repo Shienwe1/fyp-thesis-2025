@@ -1,0 +1,84 @@
+\documentclass[12pt, a4paper]{report}
+
+% -- Packages --
+\usepackage{graphicx}       % for handling image
+\usepackage{amsmath}        % for complex equations
+\usepackage{geometry}       % for setting margin
+\usepackage{natbib}         % for bibliography management
+\usepackage{setspace}       % for line spacing
+\usepackage{hyperref}       % for hyperlinks
+\usepackage{float}          % for figure placement
+\usepackage{bm}             % for bold math symbols
+
+% -- Page Layout --
+\geometry{margin=2.5cm}
+\graphicspath{{images/}}
+\renewcommand{\bibname}{References}
+\onehalfspacing
+
+% -- Document Information --
+\begin{document}
+
+% -- Title Page Information --
+\begin{titlepage}
+    \centering
+    \vspace*{2cm}
+
+    % Title
+    {\Large \textbf{Development of Finite Element Solver for\\Light Scattering Simulation}\par}
+    \vspace*{2cm}
+
+    % Author
+    {\large \textbf{Lee Shien Wei}}
+    \vfill
+
+    % University Info
+    \textbf{Faculty of Engineering}\\
+    \textbf{UNiversiti Malaya}\\
+    2026
+
+    % Submission Info
+    Submitted in partial fulfillment of the requirements for the degree of\\
+    \textbf{Bachelor of Engineering (Hons) Mechanical Engineering}
+    \vspace{1cm}
+
+
+    \vspace*{2cm}
+\end{titlepage}
+
+
+% -- Front Matter --
+\pagenumbering{roman}
+
+% 2. Declaration 
+\include{frontmatter/declaration}
+
+% 3. Abstract
+\include{frontmatter/abstract}
+
+% 4. Acknowledgements
+\include{frontmatter/acknowledgement}
+
+% 5. Table of Contents
+\tableofcontents
+
+% 6. List of Figures and Tables
+\listoffigures
+\addcontentsline{toc}{chapter}{List of Figures}
+\listoftables
+\addcontentsline{toc}{chapter}{List of Tables}
+\newpage
+
+% 7. Chapters
+\pagenumbering{arabic}
+\include{chapters/01_introduction}
+\include{chapters/02_mathformulation}
+\include{chapters/03_numformulation}
+\include{chapters/04_numimplementation}
+\include{chapters/05_validation}
+\include{chapters/06_conclusion}
+
+% 8. Biblliography
+\bibliographystyle{plainnat}
+\bibliography{references}
+\end{document}

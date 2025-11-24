@@ -1,0 +1,27 @@
+
+%!TEX root = ../main.tex
+\chapter{Mathematical Formulation of Light Scattering Problem}
+\label{chap:math_formulation}
+
+\section{Derivation of Maxwell's Equations}
+Start from the fundamental Maxwell's equations:
+\begin{align}
+    \nabla \times \bm{E} &= - \frac{\partial \bm{B}}{\partial t} \\
+    \nabla \times \bm{H} &= \bm{J} + \frac{\partial \bm{D}}{\partial t}
+\end{align}
+Derive the vector wave equation (Helmholtz equation) for the electric field $\bm{E}$.
+
+\section{Boundary Conditions}
+Define the interface conditions between different media (e.g., scatterer and background).
+\begin{equation}
+    \bm{n} \times (\bm{E}_1 - \bm{E}_2) = 0
+\end{equation}
+
+\section{Initial-Boundary Conditions}
+Discuss the radiation condition (Sommerfeld radiation condition) required to simulate an infinite domain without reflection artifacts.
+\begin{equation}
+    \lim_{r \to \infty} r \left( \nabla \times \bm{E} - ik \bm{n} \times \bm{E} \right) = 0
+\end{equation}
+
+\section{Variational Formulation of Light Scattering Problem}
+This is the core section for FEM. Multiply the strong form by a test function $\bm{v}$ and integrate by parts to obtain the weak form used in FEniCSx.

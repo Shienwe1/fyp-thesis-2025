@@ -1,0 +1,15 @@
+# LaTeX temporary files to ignore
+*.aux
+*.log
+*.out
+*.toc
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.bbl
+*.blg
+*.lof
+*.lot
+
+# Optional: Ignore the PDF if you only want to save source code
+# main_report.pdf
