@@ -12,4 +12,4 @@
 *.lot
 
 # Optional: Ignore the PDF if you only want to save source code
-# main_report.pdf
+main_report.pdf
