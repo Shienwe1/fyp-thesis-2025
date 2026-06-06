@@ -1,0 +1,96 @@
+\documentclass[class=report, crop=false]{standalone}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{bm}
+\usepackage[authoryear, round]{natbib}
+\usepackage{graphicx}
+
+\begin{document}
+
+\chapter{Project Timeline}
+
+\section{Project Timeline and Milestone For Sem 1}
+
+This chapter presents the timeline and milestones achieved throughout the development of the finite element solver for electromagnetic scattering analysis.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{images/timeline1.png}
+    \caption{Project development timeline showing key milestones and phases of the finite element solver implementation.}
+    \label{fig:timeline1}
+\end{figure}
+
+The development of the finite element solver follows a systematic five-phase approach, with each phase building upon the foundations established in the previous stage. This structured methodology ensures that both the mathematical rigor and computational implementation are validated at every step, progressing from theoretical foundations through to final presentation.
+
+\subsection{Phase 1: Foundational Theory (Weeks 1--3)}
+
+The project initiates with the establishment of clear research boundaries and objectives. The problem scope is formally defined as the two-dimensional electromagnetic scattering from a Perfect Electric Conductor (PEC) cylinder using the finite element method, with the specific field mode (TM), governing equation (Helmholtz), and validation approach (Mie series) explicitly documented. This precise problem statement prevents scope creep and ensures that the subsequent implementation addresses the correct physical scenario. Quantitative success criteria are established at this stage, including targets such as achieving less than 5\% error relative to the analytical solution and demonstrating $O(h^3)$ convergence for third-order elements. These measurable objectives provide clear validation targets throughout the development process.
+
+The mathematical foundation is derived systematically, beginning from Maxwell's equations and progressing through the time-harmonic transformation to obtain the Helmholtz equation $\nabla \times \nabla \times \bm{E} - k^2 \bm{E} = 0$. This careful derivation ensures that the sign conventions and operator ordering are correct before any numerical implementation begins. The computational environment is then established through the installation and configuration of essential tools: FEniCSx for finite element assembly, Gmsh for mesh generation, ParaView for field visualization, and the complete Python scientific stack including NumPy and SciPy. Version control is implemented through Git to track all code changes and facilitate debugging, while LaTeX documentation templates are prepared to ensure professional mathematical presentation throughout the thesis. The phase concludes with the drafting of the thesis introduction chapter, articulating the motivation for light scattering simulation, the physical background of electromagnetic wave propagation, and the specific scope of the current project.
+
+\subsection{Phase 2: Literature Review (Weeks 3--8)}
+
+With the foundational theory established, the focus transitions to a comprehensive survey of numerical methods for electromagnetic scattering. Alternative approaches including Finite-Difference Time-Domain (FDTD), Boundary Element Methods, and various finite element formulations are systematically evaluated, with their respective strengths and weaknesses documented in comparative tables. This analysis validates the selection of the finite element method, particularly noting its superiority in handling curved geometries such as the PEC cylinder, where FDTD suffers from staircase approximation artifacts.
+
+The investigation then deepens into the specific mathematical structures required for electromagnetic finite element analysis. Critical concepts including Nédélec edge elements, absorbing boundary conditions, and the enforcement of PEC constraints are studied in detail. This phase reveals the fundamental insight that standard nodal finite elements are mathematically inadequate for electromagnetic problems, as they fail to properly represent the null space of the curl operator and consequently generate spurious non-physical modes. The use of $H(\text{curl})$-conforming edge elements emerges as the essential requirement for physically correct electromagnetic simulation.
+
+Error analysis and convergence theory are investigated to establish the theoretical benchmarks for validation. A priori error estimates, convergence rates, and the pollution effect in high-frequency wave problems are systematically studied, providing the theoretical foundation to expect $O(h^3)$ error decay for third-order Nédélec elements and understanding the critical importance of maintaining $kh < 0.5$ to avoid numerical dispersion artifacts. Practical experience with FEniCSx is gained through working examples, progressing from standard Poisson and elasticity problems to simple Maxwell equation demonstrations. This hands-on familiarization ensures fluency with the Unified Form Language syntax, matrix assembly procedures, and solver invocation before tackling the complete scattering problem. The phase culminates in the preparation of the literature review chapter, documenting the state-of-the-art in finite element methods for electromagnetic scattering and establishing the academic context within which the current solver is developed.
+
+\subsection{Phase 3: Methodology (Weeks 6--11)}
+
+The methodology phase represents the transition from theory to implementation, beginning with the rigorous mathematical derivation of the weak formulation. The Helmholtz equation is multiplied by a test function from the appropriate function space, integrated over the computational domain, and integrated by parts to transfer one derivative from the solution to the test function. This procedure yields the core variational form $\int (\nabla \times \bm{E}) \cdot (\nabla \times \bm{v}) \, d\Omega - k^2 \int \bm{E} \cdot \bm{v} \, d\Omega$ plus the natural boundary terms that arise from the integration by parts. Every mathematical step is carefully documented to ensure that the sign conventions and boundary term treatments are correct, as these form the foundation of the entire numerical implementation.
+
+The computational geometry is created through the Gmsh Python API, generating an annular domain by subtracting the interior PEC cylinder from the outer computational disk. Physical tags are meticulously applied to distinguish the absorbing boundary (Tag 1) from the perfect conductor surface (Tag 2), as these tags control which boundary conditions are applied to each geometric entity. The weak formulation is then translated into executable FEniCSx code using the Unified Form Language, with careful attention to operator precedence and the correct implementation of the surface integrals for the absorbing boundary condition. Dirichlet boundary conditions are applied on the PEC surface by explicitly constraining the degrees of freedom associated with the cylinder boundary to satisfy the zero tangential field requirement.
+
+Continuous debugging is performed throughout the implementation phase, testing the solver incrementally on simplified cases such as plane wave propagation in free space. Energy conservation is verified, boundary condition enforcement is checked visually, and field magnitudes are compared against analytical expectations. This iterative testing strategy catches implementation errors early—such as incorrect sign conventions, boundary tag mismatches, and norm calculation bugs—before proceeding to the expensive validation studies. The methodology chapter of the thesis is prepared concurrently with the implementation, documenting the complete weak formulation derivation, mesh generation strategy, boundary condition implementation, and solver parameter selection with sufficient detail to enable independent reproduction of the work.
+
+\subsection{Phase 4: Validation and Results (Weeks 9--13)}
+
+Validation begins with qualitative field visualization, exporting the computed solution to ParaView for detailed inspection. Field magnitudes are computed from the complex-valued solution components, and publication-quality visualizations are generated showing the spatial distribution of the scattered electric field. Visual inspection provides an immediate sanity check, revealing gross errors such as incorrect field symmetry, absence of shadow regions, or non-physical reflections at the domain boundaries before proceeding to quantitative metrics.
+
+The analytical benchmark is established by implementing the two-dimensional Mie series theory for a PEC cylinder, computing the scattering coefficients through Bessel and Hankel function evaluations. The Mie solution is evaluated at identical spatial points as the finite element solution to enable direct comparison. Side-by-side visualizations are created showing both the numerical and analytical field distributions, demonstrating topological agreement in features such as the standing wave pattern in the illuminated region and the geometric shadow zone downstream of the cylinder.
+
+Quantitative error metrics are computed to provide objective measures of accuracy. The relative $L^2$ norm error $\|\bm{E}_{\text{FEM}} - \bm{E}_{\text{Mie}}\|/\|\bm{E}_{\text{Mie}}\|$ is calculated over the entire computational domain, and scattering ratios are compared between the numerical and analytical solutions. These numerical metrics move beyond qualitative observations to provide rigorous validation of the solver accuracy.
+
+The convergence study represents the definitive validation of the finite element implementation. The solver is executed on five progressively refined meshes, with element sizes decreasing systematically from the coarsest to finest discretization. The numerical error is computed for each mesh level and plotted against the element size on logarithmic axes. A power law is fitted to the convergence data to extract the empirical convergence rate, which is then compared against the theoretical prediction. Smooth convergence at the expected $O(h^p)$ rate provides the gold standard proof of implementation correctness, demonstrating that the discrete approximation converges to the continuous solution as the mesh is refined. The preliminary results chapter is prepared to present these findings systematically, including convergence plots, error tables, field visualizations, and detailed discussion of the pollution effect observed in the coarse mesh regime.
+
+\subsection{Phase 5: Report Preparation and Presentation (Weeks 13--14)}
+
+The final phase is dedicated to the synthesis and presentation of the semester's work. All thesis chapters—introduction, literature review, methodology, results, and conclusions—are integrated into a cohesive document. Supporting materials including the abstract, acknowledgments, and comprehensive bibliography are added to complete the formal thesis structure. This compilation process ensures that the entire research narrative flows logically from motivation through implementation to validated results, demonstrating mastery of both the mathematical theory and computational implementation of finite element methods for electromagnetic scattering.
+
+The oral defense presentation is prepared concurrently, distilling the complex technical work into a clear narrative suitable for a mixed audience. Approximately fifteen to twenty slides are created covering the problem motivation, the finite element approach and its advantages over alternative methods, key implementation decisions, and the primary validation results. The convergence study plot features prominently as the definitive evidence of solver correctness. This presentation preparation forces the articulation of technical content in accessible language, ensuring the ability to explain sophisticated concepts to both specialist and non-specialist audiences.
+
+\section{Project Timeline and Milestone For Sem 2}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{images/timeline2.png}
+    \caption{Project development timeline showing key milestones and phases of the finite element solver implementation.}
+    \label{fig:timeline2}
+\end{figure}
+
+\subsection{Phase 1: 3D Mathematical and Geometric Foundation (Weeks 1--3)}
+
+The first week initiates with the critical extension of the mathematical framework from two-dimensional cross-sections to the full three-dimensional vector wave equation, ensuring the weak formulation remains valid for volumetric analysis. During the second week, the focus shifts to geometric complexity by implementing tetrahedral mesh generation capable of accurately representing the distorted architectures inherent to polymeric biosensors. By week three, the solver architecture is finalized through the setup of $H(\text{curl})$ conforming spaces for third-order Nédélec elements, providing the mathematical stability required to resolve three-dimensional electromagnetic fields without spurious modes.
+
+\subsection{Phase 2: HPC Solver Optimization and Scalability (Weeks 4--7)}
+
+Recognizing the prohibitive computational costs of three-dimensional analysis, week four marks the transition from sparse direct LU solvers to more efficient PETSc iterative solvers. The fifth week is dedicated to the implementation of parallel preconditioners, specifically the Auxiliary Maxwell Solver (AMS), which is essential for stabilizing the ill-conditioned matrices arising from the three-dimensional Helmholtz equation. Over weeks six and seven, the framework undergoes rigorous benchmarking for computational efficiency and scalability across parallel cores to ensure the solver can handle the massive degrees of freedom required for stable high-frequency results.
+
+\subsection{Phase 3: Advanced Boundary Physics and Validation (Weeks 8--9)}
+
+To enhance the accuracy of domain truncation beyond the initial absorbing boundary condition, week eight involves the complex implementation of a three-dimensional Perfectly Matched Layer (PML) to provide reflectionless wave absorption. Week nine concludes this phase with the validation of the PML performance against 3D canonical benchmarks, confirming that the artificial boundary does not introduce non-physical artifacts into the near-field scattering results.
+
+\subsection{Phase 4: Biosensor Application and Coupled Physics (Weeks 10--12)}
+
+With the robust solver architecture in place, week ten begins the specialized modeling of stimuli-responsive PEGDA biosensor architectures. Week eleven and twelve focus on the implementation of coupled-physics modules that map realistic mechanical deformation fields---such as buckling and warping---directly into the optical domain to yield mechanistic insights inaccessible through experiment alone. This allows for the extraction of critical sensitivity metrics and computational calibration curves that predict the sensor's performance with clinical precision.
+
+\subsection{Phase 5: Evaluation, Reporting, and Final Presentation (Weeks 13--14)}
+
+The penultimate week is devoted to a quantitative error analysis for the three-dimensional biosensor models to certify that the numerical results have reached the stable asymptotic regime. Finally, week fourteen concludes with the compilation of the final technical report and preparation for the presentation, ensuring that all solver logic and physical findings are fully documented and verifiable for scientific reproducibility.
+
+\end{document}
+
+

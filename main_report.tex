@@ -1,84 +1,246 @@
 \documentclass[12pt, a4paper]{report}
 
-% -- Packages --
-\usepackage{graphicx}       % for handling image
-\usepackage{amsmath}        % for complex equations
-\usepackage{geometry}       % for setting margin
-\usepackage{natbib}         % for bibliography management
-\usepackage{setspace}       % for line spacing
-\usepackage{hyperref}       % for hyperlinks
-\usepackage{float}          % for figure placement
-\usepackage{bm}             % for bold math symbols
+% -- Essential System Packages --
+\usepackage{standalone}     % CRITICAL: Allows chapter files to have their own preambles (for previewing)
+\usepackage[T1]{fontenc}    % Correct font encoding for special characters
+\usepackage[utf8]{inputenc} % Standard input encoding
+\usepackage{mathptmx}       % Times New Roman font for text and math
+\usepackage{amsmath}        % For complex equations
+\usepackage{amssymb}        % For mathematical symbols like \mathbb
+
+% -- Formatting & Content Packages --
+\usepackage{graphicx}       % For handling images
+\usepackage{geometry}       % For setting margins
+\usepackage[authoryear, round]{natbib} % For bibliography management (APA style)
+\usepackage{setspace}       % For line spacing
+\usepackage{float}          % For figure placement
+\usepackage{bm}             % For bold math symbols
+\usepackage{listings}
+\usepackage{xcolor}
+\lstset{
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    backgroundcolor=\color{gray!10}
+}
+\usepackage[nottoc,notlot,notlof]{tocbibind} % Only add Bibliography to ToC
+\usepackage{hyperref}       % For hyperlinks (MUST be last or near-last)
 
 % -- Page Layout --
 \geometry{margin=2.5cm}
 \graphicspath{{images/}}
 \renewcommand{\bibname}{References}
+\renewcommand{\contentsname}{Table of Contents}  % Change "Contents" to "Table of Contents"
 \onehalfspacing
+\setlength{\parskip}{6pt} % Add space between paragraphs
+
+% -- Hyperref Configuration (should be near end of preamble) --
+\hypersetup{
+    colorlinks=true,
+    linkcolor=black,
+    citecolor=black,
+    urlcolor=blue,
+    pdfauthor={Lee Shien Wei},
+    pdftitle={Development of Finite Element Solver for Light Scattering Simulation}
+}
 
 % -- Document Information --
 \begin{document}
 
-% -- Title Page Information --
+% -- Title Page --
 \begin{titlepage}
     \centering
-    \vspace*{2cm}
-
-    % Title
-    {\Large \textbf{Development of Finite Element Solver for\\Light Scattering Simulation}\par}
-    \vspace*{2cm}
-
-    % Author
-    {\large \textbf{Lee Shien Wei}}
+    
+    % Top box with title and name
+    \begin{center}
+    \fbox{\begin{minipage}{0.8\textwidth}
+        \centering
+        \vspace{1cm}
+        {\Large \textbf{DEVELOPMENT OF FINITE ELEMENT SOLVER FOR\\LIGHT SCATTERING SIMULATION}\par}
+        \vspace{2cm}
+        {\large LEE SHIEN WEI\par}
+        \vspace{1cm}
+    \end{minipage}}
+    \end{center}
+    
     \vfill
-
-    % University Info
-    \textbf{Faculty of Engineering}\\
-    \textbf{UNiversiti Malaya}\\
-    2026
-
-    % Submission Info
-    Submitted in partial fulfillment of the requirements for the degree of\\
-    \textbf{Bachelor of Engineering (Hons) Mechanical Engineering}
+    
+    % Submission statement
+    A graduation exercise submitted to the Faculty of Engineering, Universiti Malaya in partial fulfilment of the requirement for the Degree of Bachelor in Mechanical Engineering
+    
+    \vfill
+    
+    % Department and institution
+    \textbf{DEPARTMENT OF MECHANICAL ENGINEERING}\\
+    \textbf{FACULTY OF ENGINEERING}\\
+    \textbf{UNIVERSITI MALAYA}
+    
+    \vspace{2cm}
+    
+    % Date
+    \textbf{JANUARY 2025}
+    
     \vspace{1cm}
-
-
-    \vspace*{2cm}
 \end{titlepage}
 
-
-% -- Front Matter --
+% ====================================
+% FRONT MATTER (Roman numerals i, ii, iii...)
+% ====================================
 \pagenumbering{roman}
+\setcounter{page}{1}
 
-% 2. Declaration 
-\include{frontmatter/declaration}
+% -- Declaration Page (page i) --
+\chapter*{DECLARATION BY THE CANDIDATE}
+\addcontentsline{toc}{chapter}{Declaration by the Candidate}
 
-% 3. Abstract
-\include{frontmatter/abstract}
+\vspace{0.5cm}
 
-% 4. Acknowledgements
-\include{frontmatter/acknowledgement}
+I, \textbf{LEE SHIEN WEI}, hereby declare that except where due acknowledgement has been made, the work presented in this thesis is my own, and has not been submitted previously in whole or in part, to qualify for other academic award.
 
-% 5. Table of Contents
+\vspace{1.5cm}
+
+The content of this graduation exercise is result of the work I have been carrying out since the official commencement date of the approved thesis project.
+
+\vspace{2cm}
+
+\noindent
+\begin{minipage}{0.45\textwidth}
+Date: \underline{\hspace{5cm}}
+\end{minipage}
+\hfill
+\begin{minipage}{0.45\textwidth}
+Signature: \underline{\hspace{4.5cm}}
+\end{minipage}
+
+\vspace{1cm}
+
+\noindent
+\hfill
+\begin{minipage}{0.45\textwidth}
+Full Name: \underline{\hspace{4.5cm}}
+\end{minipage}
+
+\vspace{1cm}
+
+\noindent
+\hfill
+\begin{minipage}{0.45\textwidth}
+NRIC No: \underline{\hspace{5cm}}
+\end{minipage}
+
+\vspace{2.5cm}
+
+\noindent
+Date: \underline{\hspace{4cm}} \hfill Supervisor's Signature and Stamp: \underline{\hspace{4cm}}
+
+% -- Abstrak (Malay) (page ii) --
+\newpage
+\chapter*{ABSTRAK}
+\addcontentsline{toc}{chapter}{Abstrak}
+
+\begin{doublespacing}
+Projek ini menangani jurang pelaksanaan kritikal dalam elektromagnetik pengiraan dengan membangunkan penyelesai unsur terhingga sumber terbuka untuk simulasi penyerakan cahaya menggunakan elemen tepi Nédélec bertertib tinggi dalam rangka kerja FEniCSx. Objektif utama adalah untuk mewujudkan alat pengiraan yang teliti secara matematik dan tepat secara fizikal yang mendemokrasikan akses kepada analisis penyerakan elektromagnetik sambil mengekalkan ketepatan gred profesional untuk aplikasi dalam reka bentuk biosensor dan penyelidikan nanofotonik. Kepentingan penyelidikan terletak pada merapatkan jurang antara perisian komersial yang mahal dan pelaksanaan tersuai yang mencabar secara teknikal, menyediakan komuniti saintifik dengan penyelesai yang telus, boleh disahkan, dan boleh dikembangkan yang menggabungkan ketegasan teori dengan kebolehcapaian praktikal. Metodologi menggunakan elemen Nédélec pematuhan-$H(\text{curl})$ bertertib ketiga pada jaringan segi tiga tidak berstruktur untuk mendiskritkan persamaan Helmholtz vektor harmonik masa, dengan syarat sempadan Konduktor Elektrik Sempurna dikuatkuasakan melalui kekangan Dirichlet kuat dan pemotongan domain dicapai melalui syarat sempadan penyerapan peringkat pertama. Formulasi lemah dilaksanakan menggunakan Bahasa Bentuk Bersepadu dan diselesaikan melalui pemfaktoran LU langsung melalui penyelesai MUMPS. Pengesahan dilakukan terhadap penanda aras siri Mie analitikal untuk penyerakan silinder dua dimensi dalam rejim resonans ($ka \approx 3.14$), dengan kajian penumpuan sistematik dijalankan merentasi lima jaringan yang diperhalusi secara progresif. Keputusan awal menunjukkan kejayaan pelaksanaan rangka kerja matematik, dengan visualisasi medan kualitatif mengesahkan corak gelombang pegun yang betul secara fizikal, pembentukan zon bayang geometri, dan penguatkuasaan syarat sempadan yang tepat tanpa artifak palsu. Pengesahan kuantitatif mendedahkan bahawa penyelesai beroperasi dalam rejim asimptotik stabil ($kh = 0.374 < 0.5$), mengelakkan kesan pencemaran berangka. Kajian penumpuan memberikan bukti muktamad ketepatan pelaksanaan, menunjukkan bahawa ralat berangka berkurangan secara monotonik dengan penghalusan jaringan dan mencapai kadar penumpuan empirik 2.88, dalam persetujuan cemerlang dengan ramalan teori 3.0 untuk elemen Nédélec kubik. Padanan rapat antara kadar penumpuan yang diperhatikan dan teori ini mengesahkan bahawa formulasi lemah dilaksanakan dengan betul, syarat sempadan dikuatkuasakan dengan sewajarnya, dan penyelesaian telah memasuki rejim asimptotik di mana ralat pendiskretan mendominasi ralat fasa. Penyelesai dua dimensi yang disahkan ini mewujudkan asas kukuh untuk pengembangan masa depan kepada geometri tiga dimensi dan aplikasi multi-fizik tergandeng dalam simulasi biosensor responsif-rangsangan.
+\end{doublespacing}
+
+% -- Abstract (English) (page iii) --
+\newpage
+\chapter*{ABSTRACT}
+\addcontentsline{toc}{chapter}{Abstract}
+
+\begin{doublespacing}
+This project addresses the critical implementation gap in computational electromagnetics by developing an open-source finite element solver for light scattering simulation using high-order Nédélec edge elements within the FEniCSx framework. The primary objective is to establish a mathematically rigorous and physically accurate computational tool that democratizes access to electromagnetic scattering analysis while maintaining professional-grade accuracy for applications in biosensor design and nanophotonics research. The research significance lies in bridging the divide between prohibitively expensive commercial software and technically demanding custom implementations, providing the scientific community with a transparent, verifiable, and extensible solver that combines theoretical rigor with practical accessibility. The methodology employs third-order $H(\text{curl})$-conforming Nédélec elements on unstructured triangular meshes to discretize the time-harmonic vector Helmholtz equation, with Perfect Electric Conductor boundary conditions enforced through strong Dirichlet constraints and domain truncation achieved via first-order absorbing boundary conditions. The weak formulation is implemented using the Unified Form Language and solved through direct LU factorization via the MUMPS solver. Validation is performed against analytical Mie series benchmarks for two-dimensional cylindrical scattering in the resonance regime ($ka \approx 3.14$), with systematic convergence studies conducted across five progressively refined meshes. Preliminary results demonstrate successful implementation of the mathematical framework, with qualitative field visualizations confirming physically correct standing wave patterns, geometric shadow formation, and proper boundary condition enforcement without spurious artifacts. Quantitative validation reveals that the solver operates within the stable asymptotic regime ($kh = 0.374 < 0.5$), avoiding numerical pollution effects. The convergence study provides definitive proof of implementation correctness, demonstrating that the numerical error decreases monotonically with mesh refinement and achieves an empirical convergence rate of 2.88, in excellent agreement with the theoretical prediction of 3.0 for cubic Nédélec elements. This close match between observed and theoretical convergence rates confirms that the weak formulation is correctly implemented, boundary conditions are properly enforced, and the solution has entered the asymptotic regime where discretization error dominates over phase error. The validated two-dimensional solver establishes a robust foundation for future extension to three-dimensional geometries and coupled multi-physics applications in stimuli-responsive biosensor simulation.
+\end{doublespacing}
+
+% -- Table of Contents (starts page iv) --
+\clearpage
+\pdfbookmark[0]{\contentsname}{toc}
 \tableofcontents
 
-% 6. List of Figures and Tables
-\listoffigures
-\addcontentsline{toc}{chapter}{List of Figures}
-\listoftables
+% -- List of Tables --
+\clearpage
 \addcontentsline{toc}{chapter}{List of Tables}
-\newpage
+\listoftables
 
-% 7. Chapters
+% -- List of Figures --
+\clearpage
+\addcontentsline{toc}{chapter}{List of Figures}
+\listoffigures
+
+% -- List of Symbols and Abbreviations --
+\clearpage
+\chapter*{LIST OF SYMBOLS AND ABBREVIATIONS}
+\addcontentsline{toc}{chapter}{List of Symbols and Abbreviations}
+
+\section*{Symbols}
+
+\begin{tabular}{@{} p{3cm} p{11cm} @{}}
+$E$ & Electric field intensity \\[0.3em]
+$H$ & Magnetic field intensity \\[0.3em]
+$D$ & Electric flux density \\[0.3em]
+$B$ & Magnetic flux density \\[0.3em]
+$J$ & Conductive electric current density \\[0.3em]
+$\rho$ & Volume electric charge density \\[0.3em]
+$\epsilon$ & Permittivity \\[0.3em]
+$\mu$ & Permeability \\[0.3em]
+$\sigma$ & Conductivity \\[0.3em]
+$\epsilon_r$ & Relative permittivity \\[0.3em]
+$\mu_r$ & Relative permeability \\[0.3em]
+$k_0$ & Free space wavenumber \\[0.3em]
+$\omega$ & Angular frequency \\[0.3em]
+$\lambda$ & Wavelength \\[0.3em]
+$h$ & Mesh size / average element size \\[0.3em]
+$kh$ & Dimensionless resolution parameter \\[0.3em]
+$ka$ & Size parameter (resonance regime) \\[0.3em]
+$p$ & Polynomial degree/order of basis functions \\[0.3em]
+$\Omega$ & Computational domain/volume \\[0.3em]
+$\partial\Omega$ & Domain boundary \\[0.3em]
+$\hat{\bm{n}}$ & Unit normal vector \\[0.3em]
+\end{tabular}
+
+\vspace{1.5cm}
+
+\section*{Abbreviations}
+
+\begin{tabular}{@{} p{3cm} p{11cm} @{}}
+ABC & Absorbing Boundary Condition \\[0.3em]
+BEM & Boundary Element Method \\[0.3em]
+FDTD & Finite Difference Time Domain \\[0.3em]
+FDFD & Finite Difference Frequency Domain \\[0.3em]
+FEM & Finite Element Method \\[0.3em]
+HPC & High-Performance Computing \\[0.3em]
+LOD & Limit of Detection \\[0.3em]
+LU & Lower-Upper (Factorization/Decomposition) \\[0.3em]
+MUMPS & MUltifrontal Massively Parallel sparse direct Solver \\[0.3em]
+PEC & Perfect Electric Conductor \\[0.3em]
+PEGDA & Poly(ethylene glycol) diacrylate \\[0.3em]
+PETSc & Portable, Extensible Toolkit for Scientific Computation \\[0.3em]
+PMC & Perfect Magnetic Conductor \\[0.3em]
+PML & Perfectly Matched Layer \\[0.3em]
+TE & Transverse Electric (mode) \\[0.3em]
+UFL & Unified Form Language \\[0.3em]
+\end{tabular}
+
+% ====================================
+% MAIN MATTER (Arabic numerals 1, 2, 3...)
+% ====================================
+\clearpage
 \pagenumbering{arabic}
-\include{chapters/01_introduction}
-\include{chapters/02_mathformulation}
-\include{chapters/03_numformulation}
-\include{chapters/04_numimplementation}
-\include{chapters/05_validation}
-\include{chapters/06_conclusion}
+\setcounter{page}{1}
 
-% 8. Biblliography
-\bibliographystyle{plainnat}
-\bibliography{references}
+\input{chapters/01_introduction} 
+
+\input{chapters/02_litreview}
+
+\input{chapters/03_methodology}
+
+\input{chapters/04_prelim_results}
+
+\input{chapters/05_schedule}
+
+% -- Bibliography --
+\clearpage
+\bibliographystyle{apalike}
+\bibliography{references} 
+
 \end{document}

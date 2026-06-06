@@ -1,0 +1,77 @@
+\chapter{Literature Review}
+
+\section{Development of Mie Series and its Role in Analytical Solutions}
+
+The theoretical bedrock of electromagnetic scattering is the Mie Series, developed by Gustav Mie in 1908. It provides an exact, closed-form solution to Maxwell's equations for spherical particles by expanding the electromagnetic fields into infinite sums of vector spherical harmonics. This analytical certainty eliminates the discretization errors found in numerical methods, making it the absolute reference point for accuracy. In modern computational electromagnetics, Mie theory is utilized not as a design tool for complex objects, but as a rigorous validation benchmark. As standard practice in the development of new solvers, such as those discussed by \citet{Kamireddy2022}, the numerical results must first demonstrate convergence against analytical Mie solutions for canonical spheres. \citet{Paulsen1994} reinforces this methodology, noting that before applying FEM to geometrically complex bodies, the formulation must be verified against analytical standards to ensure spurious-mode resistance and kernel correctness.
+
+\vspace{0.5em}
+
+Recent literature has expanded the scope of this validation strategy. \citet{Sjoberg2025} utilizes Mie scattering to verify rotationally symmetric open-source solvers, confirming its continued role as the ``gatekeeper'' for solver fidelity. Furthermore, \citet{Grand2020-we} argue that for nanostructures exhibiting ``hot-spots'' or strong field gradients, simple Mie validation is insufficient. They advocate for benchmarking against Generalized Mie Theory (GMT) and T-Matrix methods to ensure the solver correctly captures near-field intensities in plasmonic dimers, thereby establishing a more rigorous validation standard for modern nanophotonic applications.
+
+\section{Comparative Analysis of Numerical Approaches}
+
+The selection of an appropriate numerical method necessitates a rigorous trade-off analysis between Time-Domain (TD) and Frequency-Domain (FD) formulations, as well as the specific discretization strategy employed. While \citet{Jiang1996} acknowledge that Time-Domain methods are popular for broadband analysis, they caution against fundamental misconceptions regarding the divergence equations, demonstrating that overlooking the divergence condition in either transient or time-harmonic problems can lead to ill-posed systems. In the specific context of nanophotonics, \citet{Shin2013} provides a compelling physical justification for prioritizing Frequency-Domain approaches. He demonstrates that for high-quality-factor (High-Q) resonators, FDTD simulations require prohibitively long runtimes for the fields to decay, whereas Frequency-Domain solvers yield the spectral response directly, offering superior mathematical efficiency for resonant structures.
+
+\vspace{0.5em}
+
+Within the frequency domain, the choice of discretization technique is equally critical and often involves a comparison between Finite Element (FEM), Finite Difference (FDFD), and Boundary Element (BEM) methods. \citet{Rumpf2014} advocate for the Finite-Difference Frequency-Domain (FDFD) method when modeling general anisotropic materials, citing its algorithmic simplicity and natural suitability for parallelization on Graphical Processing Units (GPUs). However, \citet{Shin2013} counters that while FDFD is simple, it suffers from inherent ``staircasing'' errors when representing curved boundaries. In contrast, \citet{Paulsen1994} argues that the Finite Element Method (FEM) overcomes this limitation through the use of unstructured conformal meshes, which accurately resolve complex geometries and material inhomogeneities without the geometric approximation errors of finite-difference grids.
+
+\vspace{0.5em}
+
+Alternative boundary-based approaches, such as the Boundary Element Method (BEM), offer high accuracy for unbounded domains, as formalized by \citet{Buffa2003}. Although classical BEM is hampered by dense matrix storage requirements, \citet{Cools2011} highlight that modern implementations utilizing Fast Multipole Methods (FMM) and Calderón preconditioning can effectively mitigate these bottlenecks. Nevertheless, for problems involving penetrable bodies with continuously varying inhomogeneity, FEM remains the dominant methodology due to the sparsity of its system matrices.
+
+\section{Basis Functions and Spurious Modes}
+
+Basis functions serve as the fundamental mathematical building blocks in the Finite Element Method, acting as the interpolating polynomials that approximate the unknown electromagnetic field distribution within each discretized element. Explicitly, they form the finite-dimensional subspace in which the numerical solution is sought. The choice of these functions is not merely a numerical convenience but a physical imperative, as it dictates the continuity constraints enforced on the fields across inter-element boundaries. This choice profoundly impacts the solver's accuracy and stability; incorrect basis functions can lead to spectral pollution or non-physical artifacts that render the simulation invalid.
+
+\vspace{0.5em}
+
+Early solvers utilized Nodal Basis Functions, where degrees of freedom were associated with mesh vertices and enforced field continuity in all spatial directions. \citet{Jiang1996} provide a definitive theoretical justification for the failure of these formulations, proving that standard nodal methods often solve the ``curl-curl'' equation while ignoring the divergence equation ($\nabla \cdot \bm{B} = 0$). This oversight leads to an infinite degenerate eigenvalue, creating ``spurious modes,'' or non-physical solutions that contaminate the result. Hazard and Lenoir (1996) attempted to rescue nodal elements by proposing a ``grad-div'' regularization technique, but this complicates the handling of singularities at re-entrant corners.
+
+\vspace{0.5em}
+
+Furthermore, \citet{Kamireddy2022} emphasize that forcing full continuity violates Maxwell's boundary conditions at material interfaces, where the normal component of the electric field must be discontinuous. To eliminate these artifacts without artificial regularization, the literature overwhelmingly supports the use of \citet{Nedelec1980} Edge Elements. \citet{Zhong2018} provide optimal error estimates, rigorously proving that Nédélec edge elements converge correctly in the $L^2$ and $H(\text{curl})$ norms. \citet{Frelet2024} significantly strengthen this justification by providing sharp, wavenumber-explicit error bounds. They demonstrate that Edge elements maintain stability even in the ``preasymptotic regime'' where the mesh size is not yet infinitesimally small, a crucial property for high-frequency engineering simulations. Furthermore, \citet{Beck1999} highlight that edge elements naturally capture the nullspace of the curl operator, ensuring physical correctness that nodal elements lack.
+
+\section{Domain Truncation: PEC, IBC, and Advanced PML}
+
+The simulation of electromagnetic scattering and radiation typically involves unbounded spatial domains. However, the Finite Element Method requires the discretization of a finite volume. The role of Domain Truncation is to mathematically terminate this finite computational volume in a way that mimics infinite space. In solver development, this segment dictates the accuracy of the far-field solution. If the truncation boundary reflects outgoing waves back into the domain, which is called spurious reflections, these artifacts constructively or destructively interfere with the true fields, rendering the simulation useless. The challenge lies in creating a boundary that is transparent to waves of all frequencies and incidence angles while minimizing the added computational cost of extra mesh layers.
+
+\vspace{0.5em}
+
+Historically, \citet{Engquist1977} pioneered local Absorbing Boundary Conditions (ABCs). While computationally inexpensive (as they are applied on a 2D surface), they are mathematically approximate; Engquist and Majda admit their conditions are optimized for normal incidence and degrade significantly for glancing angles. To address this, \citet{Berenger1994} introduced the Perfectly Matched Layer (PML), which is not a boundary condition but a volumetric constitutive layer. \citet{Zschiedrich2006} and \citet{Ozgun2007} provide the theoretical justification for modern Conformal PMLs. They prove that by stretching the coordinates into the complex plane, PMLs achieve exponential convergence to the exact solution, regardless of the wave's angle. This allows the domain boundary to be placed much closer to the scatterer, saving memory.
+
+\vspace{0.5em}
+
+For specific classes of problems involving convex domains with smooth boundaries, \citet{Nicaise2020} and \citet{Melenk2024} argue that high-order Impedance Boundary Conditions (IBCs) offer a stable alternative. They demonstrate that when coupled with $hp$-FEM, IBCs can be rigorously analyzed to ensure stability, offering a lighter computational footprint than volumetric PMLs. Finally, \citet{Hsiao2002} present Finite Element-Integral Equation (FE-IE) schemes, which use boundary integrals to provide an exact radiation condition, though at the cost of dense boundary matrices.
+
+\section{Error Analysis and the Pollution Effect}
+
+Error analysis is the diagnostic framework that determines whether a simulation result is trustworthy. In the development of finite element solvers, particularly for high-frequency electromagnetics, standard convergence logic (simply making elements smaller, or $h$-refinement) breaks down due to the Pollution Effect. This segment defines the solver's stability criteria: it dictates the precise relationship required between the mesh size ($h$), the polynomial order ($p$), and the wave number ($k$) to prevent the numerical solution from drifting away from the physical reality. Without rigorous error analysis, a solver may produce smooth-looking but completely incorrect field patterns due to accumulated phase errors.
+
+\vspace{0.5em}
+
+\citet{Esterhazy2013} defines the pollution effect as a numerical dispersion phenomenon: the wavelength ``perceived'' by the grid differs slightly from the physical wavelength. Over electrically large domains, this phase lag accumulates linearly, leading to 100\% error even on refined meshes. \citet{Frelet2024} provide the first sharp, wavenumber-explicit error bounds for Edge elements, proving that the error is driven by this phase lag between the exact and discrete solutions.
+
+\vspace{0.5em}
+
+To eliminate this, \citet{Melenk2010} and \citet{Melenk2024} established definitive stability conditions. They prove that to maintain ``quasi-optimality'' (where the numerical error tracks the best approximation error), the polynomial degree $p$ must grow logarithmically with the wavenumber ($p \ge C \ln k$). This provides the strongest theoretical justification for High-Order ($p$-refinement) FEM: it is not optional but physically necessary to capture the high information content of high-frequency waves. Furthermore, \citet{Grand2020-we} highlight that for nanophotonic ``hot-spots,'' error analysis must also account for extreme field gradients, requiring a hybrid strategy of local mesh refinement ($h$) combined with high polynomial order ($p$).
+
+\section{Solver Configurations: Direct vs. Iterative}
+
+The solver configuration is the algorithmic ``engine'' of the simulation. Once the physics (Maxwell's equations) are discretized into a matrix system $\bm{Ax} = \bm{b}$, solving this system is the primary computational bottleneck. In solver development, this segment balances scalability against robustness. Maxwell matrices are notoriously difficult because they are sparse but ``indefinite'' (possessing both positive and negative eigenvalues) and often have a ``saddle-point'' structure. This structure causes standard iterative solvers to stall or diverge. The choice of solver configuration determines whether a simulation takes minutes or weeks, and whether it fits in RAM or requires a supercomputer.
+
+\vspace{0.5em}
+
+\citet{Boyse1992} highlight that while Direct Solvers (LU decomposition) are robust and guaranteed to find a solution, they suffer from ``fill-in,'' where their memory usage scales as $O(N^2)$. This makes them unfeasible for large 3D problems. Consequently, \citet{Aruliah2002} identifies Iterative Solvers as the only path forward for large-scale inversion.
+
+\vspace{0.5em}
+
+However, \citet{Greif2007} explain theoretically why standard Krylov solvers fail: the indefinite nature of the curl-curl operator means eigenvalues are not clustered. To fix this, \citet{Li2012} justify the use of Block Diagonal Preconditioners and Auxiliary Space Preconditioning. They prove that by decoupling the curl-curl and mass matrix blocks and solving them via Algebraic Multigrid (AMG), one can achieve mesh-independent convergence. Additionally, \citet{Beck1999} introduce Multilevel Solvers that explicitly handle the nullspace of the curl operator (the gradient fields). Without these advanced preconditioners, the iterative solver would spend infinite cycles trying to resolve error components that lie in the nullspace, rendering the solver inefficient.
+
+\section{Summary and Research Gaps}
+
+The literature establishes a strict blueprint for a physically accurate electromagnetic solver. It must utilize Generalized Mie/T-Matrix benchmarks for validating hot-spots \citep{Grand2020-we} alongside standard Mie kernels \citep{Sjoberg2025}. The physics dictate the use of Nédélec Edge Elements to ensure preasymptotic stability \citep{Frelet2024}, while domain truncation requires Conformal PML or high-order IBCs \citep{Zschiedrich2006, Melenk2024}. Stability in high-frequency regimes demands strict adherence to the $p$-refinement condition ($p \gtrsim \ln k$) \citep{Melenk2024}, and computational efficiency relies on Block Preconditioners \citep{Li2012}.
+
+\vspace{0.5em}
+
+A critical gap remains in the unification of these advanced methodologies. While \citet{Melenk2024} defined high-order stability with IBCs and \citet{Li2012} optimized parallel solvers, there is no single framework efficiently combining high-order edge elements, conformal 3D PML, and block-preconditioned iterative solvers to handle multi-scale 3D scattering problems with extreme gradients. This research aims to bridge that gap by integrating these disparate theoretical advancements into a cohesive solver.

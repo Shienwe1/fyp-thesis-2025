@@ -1,0 +1,360 @@
+@article{Aruliah2002,
+  author = {Aruliah, Dhavide and Simon, B.},
+  year   = {2002},
+  month  = {01},
+  title  = {Fast Solvers for Time-Harmonic Maxwell's Equations in 3D}
+}
+
+@article{Beck1999,
+  author  = {Beck, Rudolf and Hiptmair, Ralf},
+  title   = {Multilevel solution of the time-harmonic Maxwell's equations based on edge elements},
+  journal = {International Journal for Numerical Methods in Engineering},
+  volume  = {45},
+  number  = {7},
+  pages   = {901-920},
+  year    = {1999}
+}
+
+@article{Berenger1994,
+  title   = {A perfectly matched layer for the absorption of electromagnetic waves},
+  journal = {Journal of Computational Physics},
+  volume  = {114},
+  number  = {2},
+  pages   = {185-200},
+  year    = {1994},
+  author  = {Berenger, Jean-Pierre},
+  doi     = {10.1006/jcph.1994.1159}
+}
+
+@article{Boyse1992,
+  author  = {Boyse, W.E. and Lynch, D.R. and Paulsen, K.D. and Minerbo, G.N.},
+  journal = {IEEE Transactions on Antennas and Propagation}, 
+  title   = {Nodal-based finite-element modeling of Maxwell's equations}, 
+  year    = {1992},
+  volume  = {40},
+  number  = {6},
+  pages   = {642-651},
+  doi     = {10.1109/8.144598}
+}
+
+@article{Buffa2003,
+  author  = {Buffa, Annalisa and Hiptmair, Ralf},
+  year    = {2003},
+  title   = {Galerkin Boundary Element Methods for Electromagnetic Scattering},
+  volume  = {31},
+  journal = {Topics in Computational Wave Propagation, Lect. Notes Comput. Sci. Eng},
+  doi     = {10.1007/978-3-642-55483-4_3}
+}
+
+@article{Chaber2017,
+  title   = {Solution of the Complex-valued Helmholtz Equation using a Dedicated Finite Element Solver},
+  author  = {Chaber, Bartosz and Szmur{\l}o, Robert and Starzy{\'n}ski, Jacek},
+  journal = {Przegląd Elektrotechniczny},
+  year    = {2017},
+  volume  = {1},
+  pages   = {173-176}
+}
+
+@article{Frelet2024,
+  author = {Frelet, Th{\'e}ophile and Galkowski, Jeffrey and Spence, Euan},
+  year   = {2024},
+  month  = {08},
+  title  = {Sharp error bounds for edge-element discretisations of the high-frequency Maxwell equations},
+  doi    = {10.48550/arXiv.2408.04507}
+}
+
+@article{Cools2011,
+  author  = {Cools, K. and Bogaert, I. and Fostier, J. and Peeters, J. and Vande Ginste, D. and Rogier, H. and de Zutter, D.},
+  title   = {Accurate and efficient algorithms for boundary element methods in electromagnetic scattering: A tribute to the work of F. Olyslager},
+  journal = {Radio Science},
+  year    = {2011},
+  volume  = {46},
+  number  = {5},
+  pages   = {RS0E21},
+  doi     = {10.1029/2010RS004636}
+}
+
+@article{Dyczij1999,
+  title   = {Efficient finite element solvers for the Maxwell equations in the frequency domain},
+  journal = {Computer Methods in Applied Mechanics and Engineering},
+  volume  = {169},
+  number  = {3},
+  pages   = {297-309},
+  year    = {1999},
+  author  = {Dyczij-Edlinger, Romanus and Peng, Guanghua and Lee, Jin-Fa},
+  doi     = {10.1016/S0045-7825(98)00159-5}
+}
+
+@article{Engquist1977,
+  author    = {Engquist, Bjorn and Majda, Andrew},
+  journal   = {Mathematics of Computation},
+  number    = {139},
+  pages     = {629--651},
+  publisher = {American Mathematical Society},
+  title     = {Absorbing Boundary Conditions for the Numerical Simulation of Waves},
+  volume    = {31},
+  year      = {1977}
+}
+
+@phdthesis{Esterhazy2013,
+  title     = {High-order finite element analysis of the Helmholtz equation and its application in laser physics},
+  author    = {Esterhazy, Sofi},
+  publisher = {TU Wien},
+  school    = {TU Wien},
+  year      = {2013}
+}
+
+@article{Gatica2011,
+  author  = {Gatica, Gabriel and Meddahi, Salim},
+  title   = {Finite element analysis of a time harmonic Maxwell problem with an impedance boundary condition},
+  journal = {IMA Journal of Numerical Analysis},
+  volume  = {31},
+  number  = {4},
+  pages   = {1363--1390},
+  year    = {2011},
+  month   = {10},
+  doi     = {10.1093/imanum/drq041}
+}
+
+@article{Greif2007,
+  author  = {Greif, Chen and Sch{\"o}tzau, Dominik},
+  title   = {Preconditioners for the discretized time-harmonic Maxwell equations in mixed form},
+  journal = {Numerical Linear Algebra with Applications},
+  volume  = {14},
+  number  = {4},
+  pages   = {281--297},
+  year    = {2007},
+  month   = {05},
+  publisher = {Wiley}
+}
+
+@article{Hsiao2002,
+  author  = {Hsiao, G. C. and Monk, P. B. and Nigam, N.},
+  title   = {Error analysis of a finite element-integral equation scheme for approximating the time-harmonic Maxwell system},
+  journal = {SIAM Journal on Numerical Analysis},
+  volume  = {40},
+  number  = {1},
+  pages   = {198--219},
+  year    = {2002},
+  month   = {01}
+}
+
+@article{Jiang1996,
+  author  = {Jiang, Bo-Nan and Wu, Jie and Povinelli, L. A.},
+  title   = {The origin of spurious solutions in computational electromagnetics},
+  journal = {Journal of Computational Physics},
+  volume  = {125},
+  number  = {1},
+  pages   = {104--123},
+  year    = {1996},
+  month   = {04}
+}
+
+@article{Kamireddy2022,
+  author  = {Kamireddy, Durgarao and Madhukar Chavan, Saurabh and Nandy, Arup},
+  title   = {Comparative performance of novel nodal-to-edge finite elements over conventional nodal element for electromagnetic analysis},
+  journal = {Journal of Electromagnetic Waves and Applications},
+  pages   = {1--29},
+  year    = {2022},
+  month   = {10},
+  publisher = {Informa UK Limited}
+}
+
+@article{Khalefa2024,
+  author  = {Khalefa, Suhad Jasim},
+  title   = {An analytic and numerical study of Helmholtz equation using finite element method},
+  journal = {Mathematical Modelling of Engineering Problems},
+  volume  = {11},
+  number  = {12},
+  pages   = {3440--3446},
+  year    = {2024},
+  month   = {12}
+}
+
+@article{Melenk2010,
+  author  = {Melenk, J. and Sauter, S.},
+  title   = {Convergence analysis for finite element discretizations of the Helmholtz equation with {Dirichlet-to-Neumann} boundary conditions},
+  journal = {Mathematics of Computation},
+  volume  = {79},
+  number  = {272},
+  pages   = {1871--1914},
+  year    = {2010},
+  month   = {04}
+}
+
+@article{Li2012,
+  author    = {Li, Dan and Greif, Chen and Sch{\"o}tzau, Dominik},
+  title     = {Parallel numerical solution of the time-harmonic Maxwell equations in mixed form},
+  journal   = {Numerical Linear Algebra with Applications},
+  volume    = {19},
+  number    = {3},
+  pages     = {525--539},
+  year      = {2012},
+  month     = {05},
+  publisher = {Wiley}
+}
+
+@article{Melenk2024,
+  author    = {Melenk, J. M. and Sauter, S. A.},
+  title     = {Wavenumber-explicit {hp-FEM} analysis for {Maxwell}'s equations with impedance boundary conditions},
+  journal   = {Foundations of Computational Mathematics},
+  volume    = {24},
+  number    = {6},
+  pages     = {1871--1939},
+  year      = {2024}
+}
+
+@incollection{Mittra1991,
+  author    = {Mittra, Raj and Lee, Jin-Fa},
+  editor    = {Bertoni, Henry L. and Felsen, Leopold B.},
+  title     = {Direct {Maxwell}'s Equation Solvers in Time and Frequency Domains --- A Review},
+  booktitle = {Directions in Electromagnetic Wave Modeling},
+  year      = {1991},
+  publisher = {Springer US},
+  address   = {Boston, MA},
+  pages     = {171--184},
+  isbn      = {978-1-4899-3677-6},
+  doi       = {10.1007/978-1-4899-3677-6_18}
+}
+
+@article{Nedelec1980,
+  author    = {Nedelec, J. C.},
+  title     = {Mixed finite elements in {$\mathbb{R}^3$}},
+  journal   = {Numerische Mathematik},
+  volume    = {35},
+  number    = {3},
+  pages     = {315--341},
+  year      = {1980},
+  month     = {09},
+  publisher = {Springer Nature}
+}
+
+@article{Nicaise2020,
+  author    = {Nicaise, Serge and Tomezyk, J{\'e}r{\^o}me},
+  title     = {Convergence analysis of a \textit{hp}-finite element approximation of the time-harmonic {Maxwell} equations with impedance boundary conditions in domains with an analytic boundary},
+  journal   = {Numerical Methods for Partial Differential Equations},
+  volume    = {36},
+  number    = {6},
+  pages     = {1868--1903},
+  year      = {2020},
+  month     = {11},
+  publisher = {Wiley}
+}
+
+@phdthesis{Ozgun2007,
+  title  = {Finite element modeling of electromagnetic radiation},
+  author = {{\"O}zg{\"u}n, {\"O}zlem},
+  school = {Middle East Technical University},
+  year   = {2007}
+}
+
+@article{Paulsen1994,
+  author    = {Paulsen, Keith D.},
+  title     = {Finite-element solution of {Maxwell}'s equations with {Helmholtz} forms},
+  journal   = {Journal of the Optical Society of America A},
+  volume    = {11},
+  number    = {4},
+  pages     = {1434--1444},
+  year      = {1994},
+  month     = {04},
+  publisher = {Optica Publishing Group}
+}
+
+@article{Rumpf2014,
+  author    = {Rumpf, Raymond C. and Garcia, Cesar R. and Berry, Eric A. and Barton, Jay H.},
+  title     = {Finite-difference frequency-domain algorithm for modeling electromagnetic scattering from general anisotropic objects},
+  journal   = {Progress In Electromagnetics Research B},
+  volume    = {61},
+  pages     = {55--67},
+  year      = {2014},
+  publisher = {EMW Publishing}
+}
+
+@phdthesis{Schwarzbach2009,
+  author = {Schwarzbach, Christoph},
+  title  = {Stability of finite element solutions to {Maxwell}'s equations in frequency domain},
+  school = {Technische Universit{\"a}t Bergakademie Freiberg},
+  year   = {2009},
+  type   = {PhD thesis}
+}
+
+@phdthesis{Shin2013,
+  author = {Shin, Wonseok},
+  title  = {{3D} finite-difference frequency-domain method for plasmonics and nanophotonics},
+  school = {Stanford University, Department of Electrical Engineering},
+  year   = {2013},
+  url    = {https://purl.stanford.edu/jq442vm4326}
+}
+
+@techreport{Sjoberg2025,
+  author      = {Sj{\"o}berg, Daniel},
+  title       = {Scattering computations using a rotationally symmetric solver implemented in open source finite elements},
+  institution = {Department of Electrical and Information Technology, Lund University},
+  year        = {2025},
+  number      = {TEAT-7284},
+  month       = {07},
+  type        = {Technical Report}
+}
+
+@article{Zhong2018,
+  author    = {Zhong, Liuqiang and Shu, Shi and Wittum, Gabriel and Xu, Jinchao},
+  title     = {Optimal error estimates for {N{\'e}d{\'e}lec} edge elements for time-harmonic {Maxwell}'s equations},
+  journal   = {Journal of Computational Mathematics},
+  volume    = {27},
+  number    = {5},
+  pages     = {563--572},
+  year      = {2018},
+  month     = {08},
+  publisher = {Global Science Press}
+}
+
+@article{Zschiedrich2006,
+  author    = {Zschiedrich, Lin and Klose, Roland and Sch{\"a}dle, Achim and Schmidt, Frank},
+  title     = {A new finite element realization of the perfectly matched layer method for {Helmholtz} scattering problems on polygonal domains in two dimensions},
+  journal   = {Journal of Computational and Applied Mathematics},
+  volume    = {188},
+  number    = {1},
+  pages     = {12--32},
+  year      = {2006},
+  month     = {04},
+  publisher = {Elsevier}
+}
+
+@Inbook{Wriedt2012,
+author="Wriedt, Thomas",
+editor="Hergert, Wolfram
+and Wriedt, Thomas",
+title="Mie Theory: A Review",
+bookTitle="The Mie Theory: Basics and Applications",
+year="2012",
+publisher="Springer Berlin Heidelberg",
+address="Berlin, Heidelberg",
+pages="53--71",
+abstract="In optical particle characterisation and aerosol science today light scattering simulations are regarded as an indispensable tool to develop new particle characterisation techniques or in solving inverse light scattering problems. Mie scattering and related computational methods have evolved rapidly during the past decade such that scattering computations for spherical scatterers a few order of magnitudes larger, than the incident wavelength can be easily performed. This significant progress has resulted from rapid advances in computational algorithms developed in this field and from improved computer hardware. In this chapter the history and a review of the recent progress of Mie scattering and Mie-related light scattering theories and available computational programs is presented. We will focus on Mie scattering theories but as there is much overlap to related scattering theories they will also be mentioned where appropriate. Short outlines of the various methods are given. This review is of course biased by my interest in optical particle characterisation and my daily reading.",
+isbn="978-3-642-28738-1",
+doi="10.1007/978-3-642-28738-1_2",
+url="https://doi.org/10.1007/978-3-642-28738-1_2"
+}
+
+@ARTICLE{Grand2020-we,
+  title     = "Practical implementation of accurate finite-element calculations
+               for electromagnetic scattering by nanoparticles",
+  author    = "Grand, Johan and Le Ru, Eric C",
+  journal   = "Plasmonics",
+  publisher = "Springer Science and Business Media LLC",
+  volume    =  15,
+  number    =  1,
+  pages     = "109--121",
+  month     =  feb,
+  year      =  2020,
+  language  = "en"
+}
+
+@book{Jin2015,
+  title     = {The Finite Element Method in Electromagnetics},
+  author    = {Jin, Jian-Ming},
+  year      = {2015},
+  publisher = {John Wiley \& Sons},
+  edition   = {3rd},
+  isbn      = {978-1118571361}
+}

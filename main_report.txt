@@ -1,0 +1,58 @@
+\documentclass[12pt, a4paper]{report}
+
+% -- Packages --
+\usepackage[T1]{fontenc}
+\usepackage{graphicx}       % for handling image
+\usepackage{amsmath}        % for complex equations
+\usepackage{geometry}       % for setting margin
+\usepackage{natbib}         % for bibliography management
+\usepackage{setspace}       % for line spacing
+\usepackage{hyperref}       % for hyperlinks
+\usepackage{float}          % for figure placement
+\usepackage{bm}             % for bold math symbols
+\usepackage[nottoc]{tocbibind} % NEW: Helps list bibliography/ToC in the Table of Contents automatically
+
+
+% -- Page Layout --
+\geometry{margin=2.5cm}
+\graphicspath{{images/}}
+\renewcommand{\bibname}{References}
+\onehalfspacing
+
+% -- Document Information --
+\begin{document}
+
+% -- Title Page --
+\begin{titlepage}
+    \centering
+    \vspace*{2cm}
+    {\Large \textbf{Development of Finite Element Solver for\\Light Scattering Simulation}\par}
+    \vspace*{2cm}
+    {\large \textbf{Lee Shien Wei}}
+    \vfill
+    \textbf{Faculty of Engineering}\\
+    \textbf{Universiti Malaya}\\ 
+    2026
+    \vfill
+    Submitted in partial fulfillment of the requirements for the degree of\\
+    \textbf{Bachelor of Engineering (Hons) Mechanical Engineering}
+    \vspace{1cm}
+\end{titlepage}
+
+% -- Front Matter --
+\pagenumbering{roman} % Page numbers i, ii, iii...
+
+\tableofcontents
+\newpage
+
+% -- Main Matter --
+\pagenumbering{arabic} % Page numbers 1, 2, 3...
+
+% Chapter 2: Literature Review
+\include{chapters/02_litreview} 
+
+% -- Bibliography --
+\bibliographystyle{plainnat}
+\bibliography{references} % Points to references.bib
+
+\end{document}
