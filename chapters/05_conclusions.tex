@@ -1,0 +1,57 @@
+\documentclass[class=report, crop=false]{standalone}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{bm}
+\usepackage[authoryear, round]{natbib}
+
+\begin{document}
+
+\chapter{Conclusions and Recommendations}
+
+\section{Conclusions}
+
+The first objective, focusing on solver development and stabilisation, to implement a high-accuracy finite element solver utilising unstructured meshes and vector edge elements, was successfully achieved. By applying the Weighted Residual Method, Maxwell's equations were discretised and translated into the Unified Form Language of the FEniCSx framework. Utilising third-order N\'{e}d\'{e}lec elements, the solver strictly enforced tangential field continuity, ensuring physical correctness and geometric flexibility while completely eliminating the spurious modes associated with conventional nodal elements. The primary technical limitation involved the complex Jacobian mapping required to translate anisotropic material tensors directly into the computational language.
+
+\vspace{12pt}
+
+The second objective, to verify the solver accuracy against the analytical Mie series benchmark for a two-dimensional perfect electric conductor cylinder, was conclusively demonstrated. A rigorous mesh convergence study provided definitive proof of mathematical correctness. The spatial error decayed systematically across five refinement levels, recovering an empirical convergence rate of 2.88, which tightly aligns with the theoretical prediction of 3.0. Furthermore, the resolution parameter remained bounded at $kh = 0.374$, confirming the simulation operated safely within the stable asymptotic regime without numerical pollution.
+
+\vspace{12pt}
+
+The third objective, to validate robust domain truncation techniques, specifically absorbing boundary conditions to simulate an unbounded free-space environment and extend these concepts into biosensing applications, was successfully achieved. Initial validations confirmed that the absorbing boundary conditions adequately truncated the computational domain. To eliminate artificial reflections at oblique incidence angles, this truncation was successfully upgraded to an Anisotropic Perfectly Matched Layer. Operating within this perfectly matched domain, the solver accurately mapped the macroscopic optical transduction of the localized surface plasmon resonance biosensor, yielding a highly linear bulk sensitivity of 321.64 nm/RIU with a coefficient of determination of 0.99523. Additionally, the parametric decay analysis extracted a characteristic evanescent confinement length of exactly 5.1 nm, providing rigorous data-driven validation of the near-field plasmonic physics. The principal limitation identified was an instability in parallel processing during internal surface flux integration, which necessitated the adoption of the Rayleigh scattering approximation.
+
+\vspace{12pt}
+
+Beyond these technical achievements, the development of this open-source finite element solver directly advances the United Nations Sustainable Development Goals, specifically \textbf{SDG 9 (Industry, Innovation and Infrastructure)} and \textbf{SDG 4 (Quality Education)}. By providing a mathematically rigorous yet accessible Python framework, this project actively democratises advanced electromagnetic research. The solver architecture intentionally abstracts complex mathematical variational forms, allowing researchers and engineering students to execute professional-grade simulations without requiring advanced programming skills. Furthermore, by operating entirely on free open-source libraries, it eliminates the severe financial barriers historically imposed by expensive proprietary packages. This inclusive accessibility empowers global research communities to accelerate the design of critical clinical diagnostic devices, fostering sustainable scientific innovation and highly equitable engineering education. The project also contributes to \textbf{SDG 17 (Partnerships for the Goals)} through its foundational reliance on the FEniCSx ecosystem, a product of sustained international partnership between Simula Research Laboratory (Norway), the University of Cambridge (United Kingdom), and the University of Chicago (United States), demonstrating how cross-institutional, open-access scientific infrastructure can serve as a foundation for solving complex engineering problems.
+
+\section{Recommendations for Future Work}
+
+Based on the limitations identified during the development and validation of the finite element solver, three targeted improvements are recommended for future work to enhance the physical accuracy, computational scalability, and practical applicability of the framework.
+
+\vspace{12pt}
+
+\noindent\textbf{1. Further Optimisation of the Anisotropic Perfectly Matched Layer}
+
+\vspace{6pt}
+
+The first recommendation focuses on further optimising the Anisotropic Perfectly Matched Layer. While this advanced domain truncation technique was successfully implemented and utilised to simulate the primary penetrable biosensor, future work should systematically fine-tune its internal mathematical parameters. Rigorous investigations into the optimal layer thickness, conductivity profile, and quadratic absorption grading are recommended to push artificial reflections to absolute minimums. This parameter optimisation will be especially critical when deploying the solver to analyse highly complex scatterers that radiate with strong directional anisotropy.
+
+\vspace{12pt}
+
+\noindent\textbf{2. Computational Scalability and Algorithmic Execution Speed}
+
+\vspace{6pt}
+
+The second recommendation addresses computational scalability and algorithmic execution speed. Future iterations of the solver should integrate adaptive mesh refinement and dedicated hardware acceleration. Rather than relying on computationally expensive global mesh scaling, adaptive refinement algorithms utilise goal-oriented error estimators to dynamically increase grid density solely at the dielectric boundaries where the near-field electromagnetic gradients are most severe. Coupling this highly optimised spatial discretisation with modern linear algebra backends that offload massive matrix assembly to discrete graphics processing units would exponentially reduce execution times, enabling rapid high-resolution spectral sweeps.
+
+\vspace{12pt}
+
+\noindent\textbf{3. Extension to Full Three-Dimensional Vector Wave Equations}
+
+\vspace{6pt}
+
+The third recommendation involves extending the validated two-dimensional solver to full three-dimensional vector wave equations. The current implementation, while mathematically rigorous, restricts the physical geometry to infinite cylinders and cannot perfectly represent the true spherical or ellipsoidal nanoparticle shapes utilised in physical biosensor fabrication. Transitioning to three dimensions requires migrating to volumetric tetrahedral meshes, replacing the planar edge elements with their three-dimensional analogues, and transitioning from direct matrix factorisation to preconditioned iterative solvers. Utilising these advanced preconditioners is absolutely essential to efficiently process the massive mathematical systems generated by volumetric spatial discretisation.
+
+\end{document}

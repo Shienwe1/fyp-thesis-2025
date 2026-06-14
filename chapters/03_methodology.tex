@@ -2,86 +2,352 @@
 
 \section{Introduction}
 
-The primary objective of this methodology is to construct a robust, high-fidelity finite element solver capable of simulating electromagnetic scattering by arbitrary objects. The solver is first implemented for a two-dimensional (2D) scenario---specifically, the scattering of a plane wave by a Perfect Electric Conductor (PEC) cylinder. This simplified case allows for direct validation of the governing PDE, boundary condition implementation and weak form assembly against the rigorous analytical benchmark of the Mie Series. Only after the 2D solver is proven to reproduce the analytical results with high accuracy will the framework be extended to full 3D vector implementations.
+The primary objective of this methodology is to construct a high-fidelity finite element solver for electromagnetic light scattering using the open-source FEniCSx framework. The development follows a systematic progression from foundational physics to advanced biomedical applications.
 
-\vspace{0.5em}
+\vspace{12pt}
+
+The chapter begins by transforming Maxwell's equations into discrete variational weak forms (Sections 3.2 to 3.4), evolving the open-region domain truncation from simple Absorbing Boundary Conditions (ABC) to Anisotropic Perfectly Matched Layers (APML). Section 3.5 details the spatial discretization, justifying the use of high-order Nédélec edge elements to satisfy field continuity and suppress high-frequency numerical pollution.
+
+\vspace{12pt}
+
+Before addressing complex geometries, the fundamental framework is strictly validated against the exact analytical Mie Series expansion using a two-dimensional Perfect Electric Conductor (PEC) cylinder benchmark (Section 3.6).
+
+\vspace{12pt}
+
+Once mathematically verified, the methodology applies the solver to an advanced optical engineering problem: a Localized Surface Plasmon Resonance (LSPR) biosensor (Section 3.7). The chapter concludes by detailing the exact computational architecture and High-Performance Computing (HPC) algorithms, including an optimized two-phase spectral sweep, required to efficiently execute these models (Section 3.8).
 
 \section{Mathematical Formulation}
+
+\subsection{Scattered Field Formulation}
+
 The derivation of the governing equations begins from the fundamental time domain Maxwell's equations in differential form. For a linear and isotropic medium characterized by position dependent permittivity $\epsilon(\bm{r})$ and permeability $\mu(\bm{r})$ the equations are given by \citet{Jin2015} as
 \begin{equation}
-\nabla \times \bm{E}(t) = -\frac{\partial \bm{B}(t)}{\partial t} \quad \text{and} \quad \nabla \times \bm{H}(t) = \frac{\partial \bm{D}(t)}{\partial t} + \bm{J}(t)
+\nabla \times E(t) = -\frac{\partial B(t)}{\partial t} \quad \text{and} \quad \nabla \times H(t) = \frac{\partial D(t)}{\partial t} + J(t)
 \end{equation}
-where the bold notation denotes time dependent field vectors. To facilitate the analysis of steady state light scattering the solver adopts the frequency domain approach by assuming a time harmonic dependence $e^{j\omega t}$ for all fields which transforms the time derivative operator $\frac{\partial}{\partial t}$ into multiplication by $j\omega$ \citep{Monk1992}. By applying the constitutive relations $\bm{D}=\epsilon \bm{E}$ and $\bm{B}=\mu \bm{H}$ and assuming a source free region ($\bm{J}=0$) the coupled first order Maxwell's equations become
+where the time dependent field vectors are written in italic notation. To facilitate the analysis of steady state light scattering the solver adopts the frequency domain approach by assuming a time harmonic dependence $e^{j\omega t}$ for all fields which transforms the time derivative operator $\frac{\partial}{\partial t}$ into multiplication by $j\omega$ \citep{Monk1992}. By applying the constitutive relations $D=\epsilon E$ and $B=\mu H$ and assuming a source free region ($J=0$) the coupled first order Maxwell's equations become
 \begin{align}
-\nabla \times \bm{E} &= -j\omega\mu \bm{H} \\
-\nabla \times \bm{H} &= j\omega\epsilon \bm{E}
+\nabla \times E &= -j\omega\mu H \\
+\nabla \times H &= j\omega\epsilon E
 \end{align}
 
 To obtain a single governing equation for the electric field, we decouple the system by taking the curl of Faraday's Law:
 \begin{equation}
-\nabla \times (\mu^{-1}\nabla \times \bm{E}) = -j\omega\nabla \times\bm{H}
+\nabla \times (\mu^{-1}\nabla \times E) = -j\omega\nabla \times H
 \end{equation}
-Substituting Ampere's Law ($\nabla \times\bm{H} = j\omega\epsilon\bm{E}$) into the right-hand side gives:
+Substituting Ampere's Law ($\nabla \times H = j\omega\epsilon E$) into the right-hand side gives:
 \begin{equation}
-\nabla \times (\mu^{-1}\nabla \times \bm{E}) = -j\omega(j\omega\epsilon\bm{E}) = \omega^2\epsilon\bm{E}
+\nabla \times (\mu^{-1}\nabla \times E) = -j\omega(j\omega\epsilon E) = \omega^2\epsilon E
 \end{equation}
-Rearranging terms leads to the Vector Wave Equation (Curl-Curl Equation):
+Rearranging terms leads to the vector wave equation (curl curl equation):
 \begin{equation}
-\nabla \times \left( \frac{1}{\mu_r} \nabla \times \bm{E} \right) - k_0^2 \epsilon_r \bm{E} = 0
+\nabla \times \left( \frac{1}{\mu_r} \nabla \times E \right) - k_0^2 \epsilon_r E = 0
 \label{eq:vector_wave}
 \end{equation}
-where $k_0 = \omega\sqrt{\mu_0\epsilon_0}$ represents the free space wavenumber and $\epsilon_r$ is the relative permittivity \citep{Jin2015}. However solving this equation directly for the total electric field $\bm{E}_{\text{tot}}$ in an unbounded domain is numerically problematic due to the propagation of the incident wave to infinity. To rigorously handle the open boundary problem and the domain truncation the solver utilizes the Scattered Field Formulation as described by \citet{Otto2012}. This approach decomposes the total electric field into the sum of a known analytical incident field $\bm{E}_{\text{inc}}$ and an unknown scattered field $\bm{E}_{\text{sc}}$ such that $\bm{E}_{\text{tot}} = \bm{E}_{\text{inc}} + \bm{E}_{\text{sc}}$. By substituting this decomposition into the vector wave equation and noting that the incident field satisfies Maxwell's equations in free space the problem is recast into a form where the scatterer acts as a radiation source. The final strong form governing equation utilized in this project is
+where $k_0 = \omega\sqrt{\mu_0\epsilon_0}$ represents the free space wavenumber and $\epsilon_r$ is the relative permittivity \citep{Jin2015}. For the optical frequencies relevant to this study, encompassing both free space scattering and plasmonic interactions, all physical media are assumed to be non-magnetic ($\mu_r = 1$). Applying this physical constraint simplifies the general vector wave equation (Equation~\ref{eq:vector_wave}) to:
 \begin{equation}
-\nabla \times \left( \frac{1}{\mu_r} \nabla \times \bm{E}_{\text{sc}} \right) - k_0^2 \epsilon_r \bm{E}_{\text{sc}} = - \nabla \times \left( \frac{1}{\mu_r} \nabla \times \bm{E}_{\text{inc}} \right) + k_0^2 \epsilon_r \bm{E}_{\text{inc}}
-\label{eq:scattered_field}
+\nabla \times \nabla \times E - k_0^2 \epsilon_r E = 0
+\label{eq:vector_wave_simplified}
 \end{equation}
-where the right hand side represents the equivalent current source generated by the dielectric contrast between the object and the background medium \citep{Jin2015}. This formulation is advantageous because it allows the Absorbing Boundary Conditions to be applied solely to the scattered field $\bm{E}_{\text{sc}}$ which satisfies the Sommerfeld radiation condition at infinity thereby preventing non physical reflections of the incident wave at the truncation boundary \citep{Otto2012}.
+Solving this equation directly for the total electric field ($E_{\text{tot}}$) in an unbounded domain is numerically challenging due to the propagation of the incident wave to infinity. To rigorously handle the open boundary problem, the solver utilizes the Scattered Field Formulation. This approach decomposes the total electric field into the sum of a known analytical incident field ($E_{\text{inc}}$) and an unknown scattered field ($E_{\text{sc}}$):
+\begin{equation}
+E_{\text{tot}} = E_{\text{inc}} + E_{\text{sc}}
+\label{eq:field_decomp}
+\end{equation}
+By substituting this decomposition into the simplified wave equation (Equation~\ref{eq:vector_wave_simplified}), the formulation shifts the mathematical perspective so that the scatterer itself acts as the radiation source. Expanding the terms yields:
+\begin{equation}
+\nabla \times \nabla \times (E_{\text{inc}} + E_{\text{sc}}) - k_0^2 \epsilon_r (E_{\text{inc}} + E_{\text{sc}}) = 0
+\label{eq:expanded}
+\end{equation}
+Rearranging this equation to isolate the unknown scattered field on the left-hand side provides the generalized governing equation for light scattering:
+\begin{equation}
+\nabla \times \nabla \times E_{\text{sc}} - k_0^2 \epsilon_r E_{\text{sc}} = -\left(\nabla \times \nabla \times E_{\text{inc}} - k_0^2 \epsilon_r E_{\text{inc}}\right)
+\label{eq:scattered_general}
+\end{equation}
+The right-hand side of Equation~\ref{eq:scattered_general} dictates how the simulation is driven. Depending on the physical nature of the scattering object, specifically whether it is impenetrable (PEC) or penetrable (dielectric/plasmonic), this generalized equation branches into two distinct strong forms, detailed in the following subsections.
+
+\subsection{Perfect Electric Conductor (PEC) Formulation}
+
+For the fundamental validation phase, the solver models a two-dimensional Perfect Electric Conductor (PEC) cylinder. In finite element modeling, a PEC is represented not as a material volume, but as a void in the computational mesh where internal fields are zero. Consequently, the computational domain $\Omega$ consists entirely of a homogeneous background medium (free space), where the relative permittivity is unity ($\epsilon_r = \epsilon_{\text{bkg}} = 1$).
+
+\vspace{0.5em}
+
+Because the incident plane wave naturally satisfies the source free Maxwell's equations in the background medium, the relationship
+\begin{equation}
+\nabla \times \nabla \times E_{\text{inc}} - k_0^2 \epsilon_{\text{bkg}} E_{\text{inc}} = 0
+\end{equation}
+holds true everywhere within the computational domain. Applying this identity to the right-hand side of Equation~\ref{eq:scattered_general} causes the source term to completely cancel out.
+
+\vspace{0.5em}
+
+Thus, the governing PDE for the PEC benchmark is the Homogeneous Helmholtz Equation:
+\begin{equation}
+\nabla \times \nabla \times E_{\text{sc}} - k_0^2 E_{\text{sc}} = 0 \quad \text{in } \Omega
+\label{eq:pec_helmholtz}
+\end{equation}
+In this formulation, the volumetric source term is exactly zero. The generation of the scattered wave is driven entirely by the enforcement of Dirichlet boundary conditions at the conducting surface, where the incident wave is perfectly reflected.
+
+\subsection{Penetrable Volume Source Formulation}
+
+To simulate the Localized Surface Plasmon Resonance (LSPR) biosensor, the formulation must address a fundamentally different physical reality. Unlike the PEC cylinder, the gold nanoparticle and its surrounding biosensing shell are penetrable media. The computational domain $\Omega$ is therefore inhomogeneous, comprising the background water ($\epsilon_{\text{bkg}}$), the biosensing shell ($\epsilon_{\text{shell}}$), and the gold core ($\epsilon_{\text{Au}}$).
+
+\vspace{0.5em}
+
+Because the incident wave $E_{\text{inc}}$ is defined as a plane wave propagating through the background medium, it satisfies the wave equation
+\begin{equation}
+\nabla \times \nabla \times E_{\text{inc}} = k_0^2 \epsilon_{\text{bkg}} E_{\text{inc}}
+\end{equation}
+Substituting this identity into the generalized right-hand side of Equation~\ref{eq:scattered_general} yields:
+\begin{equation}
+\text{RHS} = -\left(k_0^2 \epsilon_{\text{bkg}} E_{\text{inc}} - k_0^2 \epsilon_r E_{\text{inc}}\right)
+\label{eq:rhs_penetrable}
+\end{equation}
+Factoring out the shared terms results in the equivalent volume current source driven by the dielectric contrast between the scattering object and its host medium. The governing strong form for the penetrable plasmonic solver is the Inhomogeneous Helmholtz Equation:
+\begin{equation}
+\nabla \times \nabla \times E_{\text{sc}} - k_0^2 \epsilon_r E_{\text{sc}} = k_0^2 \left(\epsilon_r - \epsilon_{\text{bkg}}\right) E_{\text{inc}} \quad \text{in } \Omega
+\label{eq:penetrable_helmholtz}
+\end{equation}
+This volume-source formulation dictates that scattering only originates in regions where the local permittivity ($\epsilon_r$) differs from the background ($\epsilon_{\text{bkg}}$). This eliminates the need for Dirichlet boundary conditions and allows the solver to rigorously compute the internal field penetration and plasmonic enhancement within the gold nanoparticle.
+
+\section{Boundary Conditions and Domain Truncation}
+
+\subsection{Dirichlet Boundary Conditions}
+
+The mathematical well-posedness of the finite element model relies strictly on the correct imposition of boundary conditions which serve as the interface between the finite computational domain and the physical reality of the scattering problem \citep{Anees2019}. To accurately simulate the interaction of the incident wave with the metallic cylinder, the solver must first enforce the Perfect Electric Conductor (PEC) condition on the object's surface $\Gamma_{\text{PEC}}$. Physically, this condition dictates that the total tangential electric field must vanish at the interface of a perfect conductor since no field can exist within the material \citep{Sjoberg2025}. In the context of the scattered field formulation derived in the previous section, this physical constraint translates into a mathematical requirement that the tangential component of the scattered field must exactly oppose the tangential component of the incident field such that $\hat{\bm{n}} \times E_{\text{sc}} = -\hat{\bm{n}} \times E_{\text{inc}}$ on the conducting boundary \citep{Jin2015}. This is classified as an essential Dirichlet boundary condition because it directly prescribes the value of the unknown field on the boundary rather than its derivative. Consequently, in the finite element assembly, this condition is not added to the weak form integral but is instead enforced algebraically by constraining the system matrix rows corresponding to the boundary degrees of freedom to strictly satisfy this vector equality \citep{Otto2012}. In contrast to this PEC benchmark, the LSPR biosensor developed later in this study models a penetrable gold nanoparticle. Consequently, internal Dirichlet constraints are completely removed for the biosensor formulation, allowing the electromagnetic fields to naturally penetrate the particle volume driven solely by dielectric contrast.
+
+\subsection{Silver-M\"{u}ller Absorbing Boundary Conditions}
+
+Simultaneously, the solver must address the truncation of the unbounded exterior domain to simulate a free space environment. Since scattered waves propagate outward indefinitely, an artificial outer boundary $\Gamma_{\text{ABC}}$ must be defined to prevent unphysical reflections from contaminating the interior solution. For the initial validation of the circular computational domain, the formulation employs the first-order Sommerfeld radiation condition, which approximates the behavior of a purely outgoing spherical wave. Mathematically, applying the time-harmonic physics convention ($e^{-i\omega t}$), the Silver-M\"{u}ller absorbing boundary condition (ABC) is expressed as a Robin type constraint where the curl of the electric field is linearly related to the field itself:
+\begin{equation}
+\hat{\bm{n}} \times \nabla \times E_{\text{sc}} \approx ik_0 \hat{\bm{n}} \times (\hat{\bm{n}} \times E_{\text{sc}})
+\label{eq:abc}
+\end{equation}
+Unlike the essential PEC condition, this relationship is a natural Neumann boundary condition \citep{Jin2015}. This mathematical property is highly advantageous for initial solver development because it allows the boundary constraint to be substituted directly into the surface integral term of the generic weak formulation, avoiding complex domain modifications.
+
+\vspace{12pt}
+
+The selection of this first-order ABC is strategically justified for the benchmark phase \citep{Sjoberg2025}. For canonical convex scatterers like the PEC cylinder situated in the center of a circular domain, the scattered waves strike the outer boundary at near normal incidence, allowing the first-order approximation to provide sufficient accuracy to verify the fundamental solver kernel against analytical Mie series benchmarks. However, while computationally inexpensive, local operators like the Silver-M\"{u}ller ABC inherently suffer from spurious reflections when electromagnetic waves strike the boundary at oblique angles. As the solver progresses to accommodate the complex, localized scattering of the LSPR biosensor, this limitation necessitates a more rigorous domain truncation technique.
+
+\subsection{Perfectly Matched Layer}
+
+The Perfectly Matched Layer (PML) is an advanced artificial absorbing medium introduced to truncate unbounded computational domains in electromagnetic simulations \citep{Berenger1994}. Unlike traditional local boundary conditions such as the Silver-M\"{u}ller ABC which apply differential operators directly at the domain edge, the PML is a finite-thickness material region placed at the exterior of the physical simulation space. Its primary function is to absorb outgoing scattered waves efficiently without reflecting energy back into the interior domain, thereby emulating an infinite free space environment within a finite computational grid \citep{Berenger1994}.
+
+\vspace{12pt}
+
+The defining characteristic of the PML is its ability to perfectly match the wave impedance of the adjacent background medium \citep{Berenger1994}. In a standard physical interface between two dielectric media, reflections occur due to an impedance mismatch. However, the PML is mathematically constructed so that the wave impedance remains identical to the physical domain, ensuring zero reflection at the interface regardless of the incident wave's angle or frequency. Once the electromagnetic wave enters the PML, its amplitude is forced to decay exponentially. This rapid attenuation ensures that the wave energy is almost entirely dissipated before it can reach the outermost numerical boundary, effectively eliminating the unphysical reflections that otherwise contaminate the near field finite element solution \citep{Bao2005}.
+
+\vspace{12pt}
+
+While the PML was originally formulated by splitting the electromagnetic field components \citep{Berenger1994}, modern finite element frameworks implement it using the computationally superior Anisotropic PML (APML) or complex coordinate stretching approach \citep{Jiao2003}. In this formulation, the real Cartesian spatial coordinates are analytically continued into the complex plane. This coordinate mapping is mathematically equivalent to replacing the physical isotropic medium with an artificial, highly anisotropic material. The scalar relative permittivity ($\epsilon_{\text{bkg}}$) and permeability ($\mu_{\text{bkg}}$) are replaced by effective complex tensors $\overline{\overline{\epsilon}}_{\text{pml}}$ and $\overline{\overline{\mu}}_{\text{pml}}$ \citep{Jiang2021}. These tensors are defined using a transformation matrix $\overline{\overline{\Lambda}}$ derived from the Jacobian of the complex stretch parameters ($s_x, s_y$). For the two-dimensional scattering scenario modeled in this study, where the geometry is invariant in the $z$-direction ($s_z = 1$), the tensor matrix simplifies to:
+\begin{equation}
+\overline{\overline{\epsilon}}_{\text{pml}} = \epsilon_{\text{bkg}} \, \overline{\overline{\Lambda}}, \qquad \overline{\overline{\mu}}_{\text{pml}} = \mu_{\text{bkg}} \, \overline{\overline{\Lambda}}
+\end{equation}
+\begin{equation}
+\overline{\overline{\Lambda}} =
+\begin{bmatrix}
+\dfrac{s_y}{s_x} & 0 & 0 \\[10pt]
+0 & \dfrac{s_x}{s_y} & 0 \\[10pt]
+0 & 0 & s_x s_y
+\end{bmatrix}
+\end{equation}
+
+Because of this material transformation, the governing time-harmonic equation changes within the truncated boundary. The original scalar Helmholtz equation transitions into a tensor based vector wave equation in the PML region:
+\begin{equation}
+\nabla \times \left( \overline{\overline{\mu}}_{\text{pml}}^{-1} \nabla \times E_{\text{sc}} \right) - k_0^2 \, \overline{\overline{\epsilon}}_{\text{pml}} \, E_{\text{sc}} = 0
+\label{eq:pml_wave}
+\end{equation}
+This formulation demonstrates that the PML is not treated as a mathematical boundary condition, but rather as an adjacent anisotropic material domain governed by its own modified wave equation \citep{Jiao2003}.
+
+\vspace{12pt}
+
+Implementing the APML within the Finite Element Method (FEM) requires partitioning the total computational volume ($\Omega$) into the physical interior domain ($\Omega_{\text{dom}}$) and the surrounding rectangular PML absorbing domain ($\Omega_{\text{pml}}$) \citep{Jiang2021}. During the variational weak form assembly, the domain integrals are explicitly split. In $\Omega_{\text{dom}}$, the standard isotropic material properties are applied. In $\Omega_{\text{pml}}$, the solver computes the inner products utilizing the complex inverse permeability tensor ($\overline{\overline{\mu}}_{\text{pml}}^{-1}$) and the permittivity tensor ($\overline{\overline{\epsilon}}_{\text{pml}}$) \citep{Jiao2003}. Because the coordinate stretching guarantees that the wave decays to near zero amplitude by the time it reaches the outermost exterior wall of the PML, the need for complex absorbing surface integrals such as those required for the Silver-M\"{u}ller ABC is completely bypassed. Instead, the outermost boundary of the PML can be left unconstrained as a natural homogeneous boundary, trapping and dissipating any infinitesimal residual energy while maintaining strict numerical stability within the FEniCSx solver architecture \citep{Bao2005}.
 
 \section{Weak Formulation}
 
-To solve the governing partial differential equation using the finite element method, the continuous strong form problem must be projected onto a discrete function space which transforms the second-order differential equation into a variational statement that relaxes the strict continuity requirements of the solution. As derived by \citet{Jin2015}, the process initiates by taking the inner product of the vector wave equation with a vector test function $\bm{v}$ chosen from the Hilbert space $H(\text{curl}; \Omega)$, which consists of square-integrable vector functions whose curl is also square-integrable \citep{Anees2019}. Multiplying the scattered field equation by $\bm{v}$ and integrating over the computational volume $\Omega$ yields the weighted residual form
-\begin{equation}
-\int_{\Omega} \left( \nabla \times \left( \frac{1}{\mu_r} \nabla \times \bm{E}_{\text{sc}} \right) \right) \cdot \bm{v} \, d\Omega - \int_{\Omega} k_0^2 \epsilon_r \bm{E}_{\text{sc}} \cdot \bm{v} \, d\Omega = \int_{\Omega} \bm{F}_{\text{inc}} \cdot \bm{v} \, d\Omega
-\label{eq:weighted_residual}
-\end{equation}
-where $\bm{F}_{\text{inc}}$ represents the source term derived from the incident field. To properly handle the second-order curl operator $\nabla \times \nabla \times$ and distribute the differentiation between the trial and test functions, the formulation employs Green's First Vector Identity. This mathematical identity states that for any two vector fields $\bm{A}$ and $\bm{B}$, the volume integral of the curl-curl product is related to a symmetric bilinear form and a surface boundary term by the relation
-\begin{equation}
-\int_{\Omega} (\nabla \times \nabla \times \bm{A}) \cdot \bm{B} \, d\Omega = \int_{\Omega} (\nabla \times \bm{A}) \cdot (\nabla \times \bm{B}) \, d\Omega - \oint_{\partial \Omega} (\bm{A} \times \nabla \times \bm{B}) \cdot \hat{\bm{n}} \, dS
-\label{eq:greens_identity}
-\end{equation}
+\subsection{PEC Cylinder with Silver-M\"{u}ller Absorbing Boundary Condition}
 
-By applying this identity with $\bm{A} = \bm{E}_{\text{sc}}$ and $\bm{B} = \bm{v}$, the formulation shifts one curl operator from the unknown electric field onto the test function. \citet{Jin2015} emphasizes that this step is mathematically critical because it reduces the differentiability requirement from $C^1$ to $H(\text{curl})$ continuity and naturally exposes the surface integral term required for boundary conditions. Substituting this identity into the weighted residual equation yields the final bilinear weak form utilized in the solver
-\begin{multline}
-\int_{\Omega} \left[ \frac{1}{\mu_r} (\nabla \times \bm{E}_{\text{sc}}) \cdot (\nabla \times \bm{v}) - k_0^2 \epsilon_r \bm{E}_{\text{sc}} \cdot \bm{v} \right] d\Omega \\
-+ \int_{\partial \Omega} \left( \hat{\bm{n}} \times \frac{1}{\mu_r} \nabla \times \bm{E}_{\text{sc}} \right) \cdot \bm{v} \, dS = \int_{\Omega} k_0^2 (\epsilon_r - 1) \bm{E}_{\text{inc}} \cdot \bm{v} \, d\Omega
-\label{eq:weak_form}
-\end{multline}
-where the surface integral over $\partial \Omega$ represents the tangential magnetic field flux through the domain boundary. \citet{Sjoberg2025} notes that this ``natural'' boundary term provides the mechanism to rigorously couple the interior domain to the exterior radiation condition (ABC) or the conducting surface (PEC) without auxiliary equations. By solving this weak form, the finite element method ensures a stable, parasite-free solution that rigorously satisfies the energy conservation properties of Maxwell's equations \citep{Boyse1992}.
-
-
-\section{Boundary Conditions}
-
-The mathematical well-posedness of the finite element model relies strictly on the correct imposition of boundary conditions which serve as the interface between the finite computational domain and the physical reality of the scattering problem \citep{Anees2019}. To accurately simulate the interaction of the incident wave with the metallic cylinder, the solver must first enforce the Perfect Electric Conductor (PEC) condition on the object's surface $\Gamma_{\text{PEC}}$. Physically, this condition dictates that the total tangential electric field must vanish at the interface of a perfect conductor since no field can exist within the material \citep{Sjoberg2025}. In the context of the scattered field formulation derived in the previous section, this physical constraint translates into a mathematical requirement that the tangential component of the scattered field must exactly oppose the tangential component of the incident field such that $\hat{\bm{n}} \times \bm{E}_{\text{sc}} = -\hat{\bm{n}} \times \bm{E}_{\text{inc}}$ on the conducting boundary \citep{Jin2015}. This is classified as an essential Dirichlet boundary condition because it directly prescribes the value of the unknown field on the boundary rather than its derivative. Consequently, in the finite element assembly, this condition is not added to the weak form integral but is instead enforced algebraically by constraining the system matrix rows corresponding to the boundary degrees of freedom to strictly satisfy this vector equality \citep{Otto2012}.
+To solve the governing partial differential equations derived in Section 3.2 using the finite element method, the continuous strong forms must first be projected onto a discrete function space. In its original strong form, the vector wave equation necessitates that the electric field be differentiated twice ($\nabla \times \nabla \times$), thereby imposing a rigid mathematical constraint that the computed field remain globally smooth. By transforming this differential equation into a variational weak form, the formulation effectively shifts one of these spatial derivatives onto a vector test function. Because the electric field is consequently differentiated only once within the integral, the strict continuity requirements of the solution are fundamentally relaxed \citep{Frelet2024}. This mathematical relaxation is computationally critical, as it permits the finite element solver to employ piecewise polynomial basis functions capable of accurately resolving the sharp geometric boundaries and abrupt material discontinuities inherent to an unstructured mesh.
 
 \vspace{12pt}
 
-Simultaneously, the solver must address the truncation of the unbounded exterior domain using an absorbing boundary condition (ABC) applied at the artificial outer boundary $\Gamma_{\text{ABC}}$. To prevent non-physical reflections from contaminating the solution, the formulation employs the first-order Sommerfeld radiation condition which approximates the behavior of a purely outgoing spherical wave. Mathematically, this is expressed as a Robin-type boundary condition where the curl of the electric field is linearly related to the field itself by $\hat{\bm{n}} \times \nabla \times \bm{E}_{\text{sc}} \approx -jk_0 \hat{\bm{n}} \times (\hat{\bm{n}} \times \bm{E}_{\text{sc}})$ \citep{Jin2015}. Unlike the PEC condition, this relationship is a natural Neumann boundary condition which allows it to be substituted directly into the surface integral term of the generic weak formulation. By replacing the generic tangential flux term with this impedance relationship, the final weak form specifically for the scattering problem becomes
+The process initiates using the Weighted Residual Method. Taking the homogeneous PEC strong form as the baseline, the equation is multiplied by a vector test function $v$ chosen from the Hilbert space $H(\text{curl}; \Omega)$, which consists of square-integrable vector functions whose curl is also square-integrable \citep{Gatica2011}. Integrating this over the computational volume $\Omega$ yields:
+\begin{equation}
+\int_{\Omega} (\nabla \times \nabla \times E_{\text{sc}}) \cdot v \, d\Omega - \int_{\Omega} k_0^2 \epsilon_r E_{\text{sc}} \cdot v \, d\Omega = 0
+\label{eq:residual_pec}
+\end{equation}
+To distribute the differentiation evenly between the trial field and the test function, the formulation employs Green's First Vector Identity:
+\begin{equation}
+\int_{\Omega} (\nabla \times \nabla \times A) \cdot B \, d\Omega = \int_{\Omega} (\nabla \times A) \cdot (\nabla \times B) \, d\Omega - \oint_{\partial \Omega} (\hat{\bm{n}} \times \nabla \times A) \cdot B \, dS
+\label{eq:greens_identity}
+\end{equation}
+By applying this identity with $A = E_{\text{sc}}$ and $B = v$, the formulation naturally exposes the surface integral term required for boundary conditions \citep{Ozgun2007}. For the initial validation benchmark, the unbounded exterior domain is truncated using the Silver-M\"{u}ller radiation condition \citep{Engquist1977}. Substituting this natural Neumann boundary condition ($\hat{\bm{n}} \times \nabla \times E_{\text{sc}} \approx ik_0 \hat{\bm{n}} \times (\hat{\bm{n}} \times E_{\text{sc}})$) into the surface integral yields the final variational weak form solved by the FEniCSx kernel:
+\begin{equation}
+\int_{\Omega} \left[ (\nabla \times E_{\text{sc}}) \cdot (\nabla \times v) - k_0^2 \epsilon_r E_{\text{sc}} \cdot v \right] d\Omega + \int_{\Gamma_{\text{ABC}}} ik_0 (\hat{\bm{n}} \times E_{\text{sc}}) \cdot (\hat{\bm{n}} \times v) \, dS = 0
+\label{eq:weak_form_abc_pec}
+\end{equation}
+
+\subsection{PEC Cylinder with Perfectly Matched Layer}
+
+To transition from the general weak formulation to the final tensor based system, we substitute the isotropic material parameters with the anisotropic Perfectly Matched Layer (APML) tensors. In the PML region ($\Omega_{\text{pml}}$), the scalar permittivity and permeability are replaced by the effective complex tensors $\overline{\overline{\epsilon}}_{\text{pml}}$ and $\overline{\overline{\mu}}_{\text{pml}}$, which account for the coordinate stretching necessary to absorb outgoing waves without reflection \citep{Ozgun2007}.
+
+\vspace{12pt}
+
+Starting from the general weak form derived in Section~3.4.1, we partition the computational domain $\Omega$ into the physical interior domain ($\Omega_{\text{dom}}$) and the anisotropic absorbing domain ($\Omega_{\text{pml}}$). By substituting the constitutive relations into the bilinear form and utilizing the tensor curl operator within the PML region, the standard inner products are transformed into matrix-vector operations. Because the complex coordinate stretching within the PML ensures that the scattered fields decay exponentially to near zero amplitude at the outer boundary, the surface integral term previously required for the Silver-M\"{u}ller radiation condition effectively vanishes \citep{Frelet2024}.
+
+\vspace{12pt}
+
+The resulting weak form, which forms the numerical foundation for the APML-based solvers, is expressed as:
 \begin{multline}
-\int_{\Omega} \left[ \frac{1}{\mu_r} (\nabla \times \bm{E}_{\text{sc}}) \cdot (\nabla \times \bm{v}) - k_0^2 \epsilon_r \bm{E}_{\text{sc}} \cdot \bm{v} \right] d\Omega \\
-+ \int_{\Gamma_{\text{ABC}}} jk_0 (\hat{\bm{n}} \times \bm{E}_{\text{sc}}) \cdot (\hat{\bm{n}} \times \bm{v}) \, dS = \int_{\Omega} k_0^2 (\epsilon_r - 1) \bm{E}_{\text{inc}} \cdot \bm{v} \, d\Omega
-\label{eq:weak_form_abc}
+\int_{\Omega_{\text{dom}}} \left[ (\nabla \times E_{\text{sc}}) \cdot (\nabla \times v) - k_0^2 E_{\text{sc}} \cdot v \right] d\Omega_{\text{dom}} \\
++ \int_{\Omega_{\text{pml}}} \left[ \left(\overline{\overline{\mu}}_{\text{pml}}^{-1} \nabla \times E_{\text{sc}}\right) \cdot (\nabla \times v) - k_0^2 \left(\overline{\overline{\epsilon}}_{\text{pml}} \, E_{\text{sc}}\right) \cdot v \right] d\Omega_{\text{pml}} = 0
+\label{eq:weak_form_pec_pml}
 \end{multline}
-where the surface integral now represents the energy absorption at the domain truncation. The selection of this first-order absorbing boundary condition over more complex perfectly matched layers (PML) is justified by \citet{Sjoberg2025}, who argues that for canonical convex scatterers like the PEC cylinder utilized in this validation phase, the first-order approximation provides sufficient accuracy to verify the solver kernel against Mie series benchmarks without introducing the additional numerical stiffness associated with perfectly matched layer implementations. This strategy aligns with the ``step-by-step'' validation protocol where the mathematical correctness of the weak form assembly is isolated and verified using the simplest robust boundary condition before progressing to complex arbitrary geometries.
+In this final form, the first integral computes the standard wave propagation within the physical domain, while the second integral utilizes the inverse permeability tensor ($\overline{\overline{\mu}}_{\text{pml}}^{-1}$) and permittivity tensor ($\overline{\overline{\epsilon}}_{\text{pml}}$) to perform the complex-valued absorption \citep{Jiao2003}. By implementing this formulation in FEniCSx, the solver natively computes the required matrix-vector products using the Unified Form Language (UFL). This ensures that the truncation of the unbounded domain is both mathematically rigorous and numerically stable, providing a consistent framework for modeling complex electromagnetic interactions \citep{Jiang2021}.
+
+\subsection{Penetrable Source with APML}
+
+The final evolution of the finite element solver targets the Localized Surface Plasmon Resonance (LSPR) biosensor, a system characterized by strong optical resonances and high intensity localized fields \citep{Grand2020-we}. This formulation inherits the rigorous APML domain truncation developed in Section~3.4.2 but fundamentally alters the driving physics of the simulation to account for penetrable metallic nanoparticles.
+
+\vspace{12pt}
+
+Unlike the perfect electric conductor modeled in the benchmark phases, the gold nanoparticle is a penetrable medium where electromagnetic fields permeate the interior volume. Consequently, the internal Dirichlet boundary constraints utilized in the benchmark phases are completely removed. The simulation is instead driven by the inhomogeneous volume source term derived in Section~3.2.3, which represents the dielectric contrast between the nanostructured sensor and the background medium.
+
+\vspace{12pt}
+
+Integrating this volumetric source onto the right-hand side of the APML formulation yields the final advanced weak form:
+\begin{multline}
+\int_{\Omega_{\text{dom}}} \left[ (\nabla \times E_{\text{sc}}) \cdot (\nabla \times v) - k_0^2 \epsilon_r (E_{\text{sc}} \cdot v) \right] d\Omega_{\text{dom}} \\
++ \int_{\Omega_{\text{pml}}} \left[ \left(\overline{\overline{\mu}}_{\text{pml}}^{-1} \nabla \times E_{\text{sc}}\right) \cdot (\nabla \times v) - k_0^2 \left(\overline{\overline{\epsilon}}_{\text{pml}} \, E_{\text{sc}}\right) \cdot v \right] d\Omega_{\text{pml}} \\
+= \int_{\Omega_{\text{dom}}} k_0^2 \left(\epsilon_r - \epsilon_{\text{bkg}}\right) (E_{\text{inc}} \cdot v) \, d\Omega_{\text{dom}}
+\label{eq:weak_form_lspr}
+\end{multline}
+In this expression, the term $(\epsilon_r - \epsilon_{\text{bkg}})$ functions as the contrast operator, restricting the excitation of the scattered field strictly to the volume of the nanoparticle and the surrounding biosensing shell. This formulation forms the core computational engine for the biosensor analysis. It allows the finite element solver to rigorously compute internal field penetration and localized plasmonic enhancement within the metallic nanoparticle, while strictly maintaining the reflectionless open boundary conditions necessary for accurate spectral tracking \citep{Grand2020-we}. By utilizing this inhomogeneous weak form in FEniCSx, the solver accurately captures the dispersive nature of the metallic gold, effectively coupling the incident plane wave to the resonant modes of the nanostructure without the need for auxiliary boundary constraints.
 
 \section{Domain Discretization and Basis Functions}
 
-The spatial discretization of the computational domain is achieved using unstructured triangular meshes which offer significant geometric flexibility compared to structured grids thereby allowing for the accurate conformal modeling of curved dielectric interfaces without the staircasing errors inherent in finite difference methods as detailed by \citet{Esterhazy2013}. However effective discretization for the time harmonic Helmholtz equation requires rigorously addressing the numerical dispersion error known as the pollution effect which typically degrades solution accuracy as the frequency increases. To mitigate this the solver adopts the wavenumber explicit analysis strategies proposed by \citet{Melenk2010} which demonstrate that the numerical error grows with the wavenumber and that high order finite element approximations ($p$-refinement) are mathematically necessary to maintain stability for high frequency scattering problems.
+The spatial discretization of the computational domain is achieved using unstructured triangular meshes. As detailed by \citet{Esterhazy2013}, this approach offers significant geometric flexibility compared to structured grids, thereby allowing for the accurate conformal modeling of curved dielectric interfaces without the staircasing errors inherent in finite difference methods.
 
 \vspace{12pt}
 
-In conjunction with this discretization strategy the selection of basis functions is critical where the solver explicitly utilizes vector Nédélec edge elements instead of conventional scalar nodal elements. \citet{Webb1999} in his analysis of practical finite element implementations argues that this choice is mandated by the physical requirement that the electric field must maintain tangential continuity across material interfaces while allowing the normal component to be discontinuous which is a condition that standard nodal elements fail to satisfy as they enforce continuity in all spatial directions. Furthermore \citet{Monk1992} emphasizes that for time harmonic scattering problems the application of nodal based finite elements to the vector wave equation is mathematically flawed because it fails to properly represent the null space of the curl operator which inevitably leads to the generation of non physical spurious modes that contaminate the numerical solution. By employing edge elements the formulation inherently satisfies the divergence free condition of the electric field in source free regions and ensures that the gradient of any scalar field maps exactly into the kernel of the curl operator thereby guaranteeing spectral correctness and numerical stability as established by \citet{Nedelec1980}.
+However, effective discretization for the time harmonic Helmholtz equation requires rigorously addressing the numerical dispersion error, commonly known as the pollution effect. This numerical artifact typically degrades solution accuracy as the excitation frequency increases. To mitigate this, the formulation adopts the wavenumber explicit analysis strategies proposed by \citet{Melenk2010}. Their work demonstrates that numerical error grows with the wavenumber, and that high order finite element approximations (p refinement) are mathematically necessary to maintain numerical stability for high frequency scattering problems.
 
-\section{The FEniCSx Software for Numerical Implementation}
+\vspace{12pt}
+
+In conjunction with this discretization strategy, the selection of basis functions is critical. The solver explicitly utilizes high order vector Nédélec edge elements instead of conventional scalar nodal elements. \citet{Webb1999} argues that this choice is mandated by the physical nature of electromagnetics: the electric field must maintain tangential continuity across material interfaces while allowing the normal component to be discontinuous. Standard nodal elements strictly enforce continuity in all spatial directions, thereby failing to satisfy this physical interface condition.
+
+\vspace{12pt}
+
+Furthermore, applying nodal based finite elements to the vector wave equation is mathematically flawed because it fails to properly represent the null space of the curl operator \citep{Monk1992}. This deficiency inevitably leads to the generation of unphysical spurious modes that contaminate the numerical solution. By employing Nédélec edge elements, the formulation inherently satisfies the divergence free condition of the electric field in source free regions. It ensures that the gradient of any scalar field maps exactly into the kernel of the curl operator, thereby guaranteeing spectral correctness and strict numerical stability across the entire computational domain \citep{Nedelec1980}.
+
+\section{Analytical Benchmark and Solver Validation}
+
+The Lorenz-Mie theory serves as a foundational analytical framework that mathematically formulates the exact physical scattering of electromagnetic radiation by a particle \citep{Wriedt2012}. To translate complex wave behaviour into an exact mathematical model, the theory relies upon the method of separation of variables. This mathematical procedure simplifies the multi-dimensional Helmholtz wave equation by decoupling it into independent, one-dimensional equations corresponding to distinct spatial coordinates. By solving these separated equations, the theory represents the scattered light as an infinite series expansion of foundational cylindrical harmonics, which are subsequently summed to precisely reconstruct the total electromagnetic field.
+
+\vspace{12pt}
+
+Despite its exactness, the applicability of the Lorenz-Mie approach is inherently restricted. The method of separation of variables dictates that the physical boundaries of the scatterer must perfectly conform to a canonical coordinate system. Consequently, when encountering particles with irregular or asymmetric shapes, the spatial boundaries intersect the coordinate axes unevenly, rendering the variables inseparable and the analytical formulation invalid. However, for the infinite perfect electric conductor (PEC) circular cylinder utilised in the fundamental validation phase of this study, the theory provides an exact ground truth solution against which the finite element solver can be rigorously benchmarked.
+
+\subsection{Derivation of TE Scattering Coefficients}
+
+For a 2D circular PEC cylinder of radius $R_{\text{cyl}}$ illuminated by a time harmonic ($e^{-i\omega t}$) plane wave, the electromagnetic fields can be expanded into infinite series of cylindrical wave functions. Because the finite element solver models the electric field strictly within the two-dimensional transverse plane ($xy$-plane), the incident wave represents a Transverse Electric (TE) polarization.
+
+\vspace{12pt}
+
+The incident plane wave is regular at the origin and can be expanded using Bessel functions of the first kind, $J_n(k_0 r)$:
+\begin{equation}
+H_{\text{inc},z}(r, \phi) = H_0 \sum_{n=-\infty}^{\infty} i^n J_n(k_0 r) \, e^{in\phi}
+\label{eq:mie_inc}
+\end{equation}
+Conversely, the scattered wave must satisfy the radiation condition at infinity, requiring the use of Hankel functions of the first kind, $H_n^{(1)}(k_0 r)$, to represent purely outgoing cylindrical waves:
+\begin{equation}
+H_{\text{sc},z}(r, \phi) = H_0 \sum_{n=-\infty}^{\infty} i^n a_n H_n^{(1)}(k_0 r) \, e^{in\phi}
+\label{eq:mie_scat}
+\end{equation}
+where $a_n$ are the unknown analytical scattering coefficients. To determine these coefficients, the fundamental Dirichlet boundary condition for a perfect electric conductor must be satisfied. As established in Section~3.3.1, the tangential component of the total electric field ($E_\phi$) must vanish at the cylinder surface ($r = R_{\text{cyl}}$).
+
+\vspace{12pt}
+
+According to Maxwell's curl equations, the tangential electric field is proportional to the radial derivative of the longitudinal magnetic field ($\frac{\partial H_z}{\partial r}$). Therefore, the boundary condition dictates that the radial derivative of the total field must equal zero at the PEC interface:
+\begin{equation}
+\left. \frac{\partial}{\partial r} \left[ H_{\text{inc},z} + H_{\text{sc},z} \right] \right|_{r=R_{\text{cyl}}} = 0
+\label{eq:mie_bc}
+\end{equation}
+Substituting the series expansions into this boundary condition yields the fundamental equivalence:
+\begin{equation}
+\sum_{n=-\infty}^{\infty} i^n k_0 J'_n(k_0 R_{\text{cyl}}) \, e^{in\phi} + \sum_{n=-\infty}^{\infty} i^n a_n k_0 H_n^{(1)\prime}(k_0 R_{\text{cyl}}) \, e^{in\phi} = 0
+\label{eq:mie_bc_expanded}
+\end{equation}
+where $J'_n$ and $H_n^{(1)\prime}$ denote the first derivatives of the Bessel and Hankel functions with respect to their arguments. By utilising the orthogonal properties of the exponential functions, the terms for each mode $n$ can be equated to zero independently. Solving algebraically for the scattering coefficients yields the exact analytical solution for the TE polarized solver:
+\begin{equation}
+a_n = -\frac{J'_n(k_0 R_{\text{cyl}})}{H_n^{(1)\prime}(k_0 R_{\text{cyl}})}
+\label{eq:mie_an}
+\end{equation}
+By truncating the infinite series to a numerically convergent limit, the exact scattered field $E_{\text{sc}}^{\text{Mie}}$ can be computed at any point in the free space domain, providing the ground truth reference for all subsequent validation comparisons.
+
+\subsection{Qualitative Field Validation}
+
+Validation begins with a direct visual comparison between the numerically generated field distribution and the analytical benchmark. As described in \citet{Wriedt2012}, the total electric field magnitude $|E_{\text{tot}}|$ must exhibit specific interference characteristics. In the illuminated region, a standing wave pattern should emerge with alternating bright and dark fringes, resulting from the constructive and destructive interference between the forward-propagating incident plane wave and the retro-reflected component of the scattered wave. Conversely, the shadow region immediately behind the cylinder should demonstrate a significant amplitude drop, confirming that the cylinder effectively acts as an opaque obstruction to the electromagnetic energy. The gradual recovery of intensity further downstream indicates the presence of diffractive effects, or creeping waves, which propagate along the curved surface into the shadow region \citep{Martin1993}.
+
+\vspace{12pt}
+
+A critical verification of the numerical formulation is the behaviour of the field at the material interface. For a PEC, the fundamental boundary condition requires the tangential component of the total electric field to vanish on the surface. A clear zero-field contour outlining the cylinder perimeter would confirm that the Dirichlet condition imposed on the Nédélec edge elements has been strictly enforced by the solver, successfully preventing unphysical field penetration into the conductor. While this visual inspection provides a qualitative sanity check, \citet{Frelet2024} warn that qualitative agreement can mask pre-asymptotic errors in high-frequency regimes, necessitating rigorous norm-based quantification.
+
+\subsection{Quantitative Verification and the Pollution Effect}
+
+To rigorously quantify the solver's fidelity, a global error analysis is employed using the relative $L_2$ error norm. This metric aggregates discrepancies over the entire computational domain rather than at isolated points, and is defined as:
+\begin{equation}
+\text{Error}_{L_2} = \frac{\sqrt{\int_{\Omega} |E_{\text{sc}}^{\text{FEM}} - E_{\text{sc}}^{\text{Mie}}|^2 \, d\Omega}}{\sqrt{\int_{\Omega} |E_{\text{sc}}^{\text{Mie}}|^2 \, d\Omega}}
+\label{eq:l2_error}
+\end{equation}
+\citet{Hsiao2002} emphasize that the $L_2$ norm provides a stable measure of convergence for finite element schemes involving scattering, as it effectively smooths out local singularities near sharp conducting edges that might otherwise skew $L_{\infty}$ (maximum norm) estimates. Furthermore, \citet{Melenk2024} demonstrate that minimizing this norm directly correlates to the stability of the wave-number explicit solution, ensuring that the numerical solution $E_{\text{sc}}^{\text{FEM}}$ strictly adheres to the continuity requirements of the underlying Hilbert space $H(\text{curl})$.
+
+\vspace{12pt}
+
+The ultimate test of the solver's mathematical correctness is the verification of its convergence rate, which measures how rapidly the numerical error decays as the mesh density increases. \citet{Frelet2024} provide the sharpest theoretical bounds for this behaviour, proving that for Nédélec edge elements of polynomial order $p$, the error in the asymptotic regime must satisfy the inequality $\|E - E_h\|_{H(\text{curl})} \le C h^p \|E\|_{H^{p+1}}$. However, a critical aspect of validating high-frequency Helmholtz solvers is distinguishing between the asymptotic and pre-asymptotic regimes. In the pre-asymptotic phase, where the mesh is sufficiently fine to resolve the geometry but too coarse relative to the wavelength ($kh \not\ll 1$), the pollution effect dominates the solution. In this unstable regime, numerical dispersion errors accumulate as the wave propagates across the domain, causing a significant phase drift between the computed and analytical waves. Consequently, simply refining the mesh in this phase may yield unpredictable results, characterized by error stagnation or even oscillatory behaviour where a finer mesh paradoxically produces a higher error due to resonance shifts \citep{Melenk2024}.
+
+\vspace{12pt}
+
+The solver is confirmed to have entered the stable asymptotic regime only once the mesh density satisfies the strict resolution threshold ($kh \ll 1$) required to suppress this dispersive accumulation. Once this threshold is crossed, the phase error becomes negligible and the global error begins to decrease monotonically. To verify this transition, the validation process involves plotting the relative $L_2$ error against the inverse mesh size $1/h$ on a log-log scale. A linear slope emerging in the tail of this plot that matches the theoretical polynomial order $p$ serves as the definitive mathematical proof that the implementation is free from locking effects and spurious modes, verifying that the discrete weak form has converged to the continuous physical reality as predicted by the stability theory of \citet{Hazard1996}.
+
+\section{Localized Surface Plasmon Resonance (LSPR) Biosensor Implementation}
+
+To computationally simulate the localized surface plasmon resonance (LSPR) biosensor, the solver architecture transitions from the homogeneous PEC benchmark to a heterogeneous, penetrable core-shell geometry. The simulation must accurately represent the physical architecture of the sensor, which relies on the precise interaction between a rigid metallic core and a biological protein layer.
+
+\subsection{Geometric and Physical Modeling of the Core-Shell Biosensor}
+
+Directly addressing the biomedical diagnostic applications established in the introduction, the computational domain is rigorously partitioned into three distinct physical regions: the plasmonic Gold (Au) core, the protein sensing shell, and the surrounding water medium. Explicitly modeling these discrete structural layers is computationally necessary because the physical diameter of the nanoparticle core and its specific surface functionalization directly dictate its binding affinity and interaction efficacy within biological systems \citep{Das2023}. Utilizing the Gmsh application programming interface, these regions are explicitly geometrically defined and tagged as independent volumetric subdomains \citep{Das2023}. This topological tagging is a critical methodological step as it allows the FEniCSx solver to isolate the physical regions during the variational assembly. By doing so, the solver applies the mathematical contrast operator $(\epsilon_r - \epsilon_{\text{bkg}})$ derived in the advanced inhomogeneous weak formulation strictly to the respective volumes of the nanoparticle core and the protein shell.
+
+\vspace{12pt}
+
+To rigorously truncate this open-region scattering problem, the physical square domain is surrounded by rectangular Anisotropic Perfectly Matched Layer (APML) strips. To ensure a completely reflectionless attenuation of the outgoing scattered waves at the domain interface, the complex coordinate stretching within these PML regions is mathematically defined using a quadratic absorption profile. This guarantees that the absorption derivative is zero exactly at the physical interface, preventing artificial numerical backscattering into the biosensor domain.
+
+\subsection{Material Dispersion Modeling}
+
+To accommodate the extreme optical dispersion of the plasmonic gold core established in Section~2.6.1, the simulation discards static material constants. The relative permittivity is implemented as a complex-valued, wavelength-dependent array sourced from the Johnson and Christy (1972) empirical dataset. To seamlessly integrate these discrete data points into the continuous finite element solver, the computational setup utilises cubic spline interpolation. This generates a smooth mathematical curve, allowing the spectral sweep algorithm to query the exact complex permittivity at any arbitrary sub-nanometer wavelength step without manual data input.
+
+\subsection{Computation of Optical Cross-Sections and HPC Adaptations}
+
+To track the LSPR peak computationally, the solver extracts the primary macroscopic observable: the absorption cross-section ($C_{\text{abs}}$). This is calculated by the software via a volumetric integration of the resistive heating losses within the plasmonic gold core ($\Omega_{\text{Au}}$):
+\begin{equation}
+C_{\text{abs}} = \frac{\omega}{2 P_{\text{inc}}} \int_{\Omega_{\text{Au}}} \text{Im}(\epsilon_{\text{Au}}) |E_{\text{tot}}|^2 \, d\Omega
+\label{eq:cabs}
+\end{equation}
+As justified by the Rayleigh scattering limit discussed in Section~2.6.2, the 25 nm gold nanoparticle is highly inefficient at scattering. Therefore, to ensure strict High-Performance Computing (HPC) stability and prevent the Message Passing Interface (MPI) facet crashes associated with internal surface integrals, the solver explicitly bypasses the $C_{\text{sca}}$ calculation. The total optical extinction is approximated purely via the computed volumetric absorption ($C_{\text{ext}} \approx C_{\text{abs}}$), allowing for robust and continuous tracking of the spectral peak.
+
+\subsection{Biosensor Performance Metrics and Decay Validation}
+
+The ultimate validation of the biosensor simulation is executed through two automated parametric analysis scripts designed to extract the clinical performance metrics defined in Section~2.6.3.
+
+\vspace{12pt}
+
+First, to compute bulk linearity, the solver systematically sweeps the background refractive index ($n$) of the water medium and extracts the corresponding shift in the interpolated $C_{\text{abs}}$ peak. This slope provides the rigorous Bulk Sensitivity ($S$) in nm/RIU.
+
+\vspace{12pt}
+
+Second, to computationally validate the surface sensitivity and spatial overlap of the evanescent field, the framework executes an automated structural loop. The solver dynamically alters the physical thickness of the protein sensing shell from 2 nm to 40 nm, recalculating the full electromagnetic response at each step. The resulting discrete redshift array ($\Delta\lambda$) is exported and numerically fitted to the asymptotic exponential saturation model established in Section~2.6.3. Extracting the decay length ($l_d$) via this data-driven curve fit provides final confirmation that the simulated near field physics correctly replicates real-world plasmonic constraints.
+
+\section{FEniCSx Software and Solver Algorithm Implementation}
+
+\subsection{The FEniCSx Software for Numerical Implementation}
 
 The implementation of the finite element solver is realized using the FEniCSx computing package (specifically the DOLFINx library), which represents the modern, high-performance evolution of the FEniCS project described by \citet{Otto2012} designed to solve partial differential equations (PDEs) through automated code generation. The primary justification for this selection lies in its use of the Unified Form Language (UFL), a domain-specific language that allows the weak form of Maxwell's equations to be expressed in Python code that mirrors the mathematical notation almost exactly. \citet{Otto2012} highlight this as a transformative capability, noting that it allows for the rapid implementation of complex expressions associated with finite element analysis while minimizing the ``translation error'' between theoretical derivation and code implementation. As demonstrated in their implementation of near-to-far-field transforms, UFL is sufficiently complete to express intricate electromagnetic operations directly as compilable forms, ensuring that the variational problem solved by the computer is strictly identical to the one derived on paper \citep{Otto2012}.
 
@@ -97,76 +363,38 @@ Furthermore, the software addresses computational bottlenecks via scalable linea
 
 Finally, this drives the requirement for transparency and reproducibility. \citet{Owusu-Agyemang2025} argue that advancing computational photonics requires moving away from opaque proprietary package to software that prioritize direct mathematical control. By utilizing FEniCSx, this project ensures that the solver logic starting from the weak form definition to the specific matrix assembly kernels to be fully exposed and verifiable, directly addressing the need for scientific reproducibility in modeling complex nanophotonic devices.
 
-\section{Solver Algorithm Implementation}
+\subsection{Solver Algorithm Implementation}
 
-The computational execution of the finite element solver follows a sequential pipeline that begins with the rigorous discretization of the physical domain. Utilizing the Gmsh generator, the simulation geometry is tessellated into an unstructured grid of triangular elements which naturally conform to the curvature of the cylindrical scatterer. This unstructured discretization is critically selected to eliminate the geometric approximation errors known as ``staircasing'' which are inherent in structured Cartesian grid methods like FDTD \citep{Shin2013}. \citet{Jin2015} further emphasizes that for scattering problems involving curved dielectric interfaces, such conformal meshing is essential to preserve the fidelity of the boundary conditions and prevent the generation of spurious numerical reflections that would otherwise degrade the near-field accuracy. During this mesh generation process, physical groups are explicitly tagged to distinguish the topological boundaries:
-\begin{itemize}
-    \item the cylinder surface $\Gamma_{\text{PEC}}$ is marked for the imposition of Dirichlet constraints
-    \item the outer domain boundary $\Gamma_{\text{ABC}}$ is identified for the integration of the Absorbing Boundary Condition.
-\end{itemize}
-
-Following the geometric setup, the continuous problem is projected onto a discrete function space $V_h$ constructed using Nédélec Edge Elements of the first kind. To address the numerical pollution effect which degrades accuracy in high-frequency wave propagation problems, the solver employs a high-order polynomial approximation (specifically $p=3$). This design choice aligns with the stability condition derived by \citet{Melenk2024}, effectively ensuring that the numerical dispersion error is exponentially suppressed by increasing the interpolation order rather than merely refining the mesh size. The mathematical weak form derived in Section 3.3 is then translated directly into the Unified Form Language (UFL), allowing the FEniCSx form compiler to automatically generate the optimized low-level kernels required to assemble the global stiffness matrix $\bm{A}$ and the load vector $\bm{b}$.
+To computationally execute the mathematical formulations defined in the previous sections, the solver architecture is built upon the open-source FEniCSx framework. The implementation strategy evolved through three progressive computational stages: the fundamental Absorbing Boundary Condition (ABC) benchmark, the Anisotropic Perfectly Matched Layer (APML) benchmark, and the advanced Localized Surface Plasmon Resonance (LSPR) biosensor application. The overarching solver algorithm executes through four distinct methodological phases.
 
 \vspace{12pt}
 
-The final stage of the algorithm involves solving the resulting linear system $\bm{A}\bm{x}=\bm{b}$ which is characteristic of the frequency-domain Helmholtz equation: sparse, complex-symmetric, and indefinite. While iterative methods are often employed for massive 3D problems, \citet{Owusu-Agyemang2025} warn that they are prone to convergence stagnation for indefinite wave problems unless specialized preconditioners are used. Consequently, for this 2D validation phase, the solver utilizes a robust sparse direct solver (LU decomposition) provided by the MUMPS library via the PETSc backend. This approach guarantees a stable and accurate solution in a deterministic runtime, isolating the validation focus strictly on the physics of the discretization rather than the tolerances of an iterative solver \citep{Sjoberg2025}.
+\noindent\textbf{Phase 1: Geometric Discretization and Topological Tagging}
 
-\section{Finite Element Solver Validation}
+\vspace{6pt}
 
-Based on the theoretical frameworks detailed in \citet{Wriedt2012} and \citet{Martin1993}, the derivation of the Mie series analytical solution represents a systematic reduction of vector calculus into scalar algebra, transforming the complex interaction of light with a spherical particle into a solvable set of linear equations.
-
-\subsection{Derivation of the Mie Series}
-
-The process begins with the source-free Maxwell's equations. Assuming a time-harmonic field with dependence $e^{-i\omega t}$, these equations are decoupled to form the Vector Helmholtz Equation:
-\begin{equation}
-\nabla^2 \bm{E} + k^2 \bm{E} = 0
-\label{eq:vector_helmholtz}
-\end{equation}
-Solving this vector equation directly in spherical coordinates is mathematically intractable because the unit vectors ($\hat{\bm{r}}, \hat{\bm{\theta}}, \hat{\bm{\phi}}$) are position-dependent. To overcome this, the solution is constructed using Vector Spherical Harmonics (VSH), denoted as $\bm{M}$ and $\bm{N}$, which are generated from a scalar potential $\psi$ satisfying the scalar wave equation \citep{Wriedt2012}:
-\begin{equation}
-\bm{M} = \nabla \times (\bm{r}\psi) \quad \text{and} \quad \bm{N} = \frac{1}{k} \nabla \times \bm{M}
-\label{eq:vsh}
-\end{equation}
-The scalar function $\psi$ is determined via separation of variables, yielding a product of spherical Bessel functions (radial), associated Legendre polynomials (polar), and exponential functions (azimuthal).
+The algorithmic pipeline initiates with the rigorous spatial discretization of the physical domain using the Gmsh generator. The topological layout is strictly dependent on the solver generation being executed. For the ABC benchmark, the geometry is defined as an unstructured annular grid between the circular perfect electric conductor (PEC) and a circular outer boundary. Physical tags are applied to the 1D surfaces to facilitate the line integrals required by the Silver-M\"{u}ller radiation condition. For the APML benchmark and biosensor, the geometry transitions to a square computational domain surrounded by discrete rectangular absorbing strips. Utilizing the Gmsh API, the domains are explicitly fragmented and volumetrically tagged (for example, core, shell, background, and specific Cartesian PML regions) to prevent mesh discontinuities at the interfaces. These generated meshes and associated physical markers are seamlessly imported into FEniCSx, establishing the discrete operational domain.
 
 \vspace{12pt}
 
-Once the basis functions are defined, the electromagnetic fields are expressed as weighted sums of these harmonics:
-\begin{itemize}
-    \item \textbf{The Incident Field:} Expanded via the Rayleigh expansion into an infinite series of spherical harmonics.
-    \item \textbf{The Internal Field:} Expanded using regular Bessel functions ($j_n$ or $\psi_n$) to ensure finiteness at the sphere's center.
-    \item \textbf{The Scattered Field:} Expanded using spherical Hankel functions ($h_n^{(1)}$ or $\zeta_n$) to satisfy the radiation condition at infinity.
-\end{itemize}
+\noindent\textbf{Phase 2: Variational Assembly and Form Compilation}
 
-\noindent The scattered electric field is explicitly written as:
-\begin{equation}
-\bm{E}_{\text{sca}} = \sum_{n=1}^{\infty} E_n (i a_n \bm{N}_{e1n}^{(3)} - b_n \bm{M}_{o1n}^{(3)})
-\label{eq:mie_scattered}
-\end{equation}
-The unknown coefficients $a_n$ and $b_n$ are determined by enforcing the continuity of tangential Electric and Magnetic fields at the sphere's surface ($r=a$). Solving the resulting linear system yields the Mie scattering coefficients:
-\begin{align}
-a_n &= \frac{m\psi_n(mx)\psi'_n(x) - \psi_n(x)\psi'_n(mx)}{m\psi_n(mx)\xi'_n(x) - \xi_n(x)\psi'_n(mx)} \label{eq:mie_an} \\
-b_n &= \frac{\psi_n(mx)\psi'_n(x) - m\psi_n(x)\psi'_n(mx)}{\psi_n(mx)\xi'_n(x) - m\xi_n(x)\psi'_n(mx)} \label{eq:mie_bn}
-\end{align}
-Here, the numerator describes the interference matching the boundary fields, while the denominator dictates the resonance conditions of the sphere \citep{Martin1993}.
+\vspace{6pt}
 
-\subsection{Solver Validation Methodology}
-
-Validation begins with a direct visual comparison between the numerically generated field distribution and the analytical benchmark. As described in \citet{Wriedt2012}, the total electric field magnitude $|E_{\text{total}}|$ must exhibit specific interference characteristics. In the illuminated region ($x < -a$), a standing wave pattern should emerge with alternating bright and dark fringes, resulting from the interaction between the incident and reflected waves. Conversely, the shadow region ($x > a$) should demonstrate a significant amplitude drop, confirming the blocking effect of the conductor. While this visual inspection provides a qualitative ``sanity check,'' \citet{Frelet2024} warn that qualitative agreement can mask pre-asymptotic errors in high-frequency regimes, necessitating rigorous norm-based quantification.
+Following the geometric setup, the continuous problem is projected onto a discrete function space constructed using third-order Nédélec edge elements to suppress numerical dispersion \citep{Melenk2010}. The mathematical weak forms are translated directly into the Unified Form Language (UFL) based on the target physics. For the PEC cylinder benchmark validations, the solver applies a strict Dirichlet boundary condition ($E_{\text{sc}} = -E_{\text{inc}}$) at the metallic interface. For the ABC solver, the form compiler evaluates the radiation impedance via a surface integral. For the APML solver, the surface integrals are discarded and the formulation instead applies coordinate stretching Jacobians directly into the volumetric integrals corresponding to the tagged PML subdomains. Crucially, this complex coordinate stretching is mathematically programmed in UFL with a quadratic absorption profile, which ensures a smooth, reflectionless attenuation of the outgoing waves at the domain interface. For the biosensor, the solver utilizes a custom two-phase spectral sweep architecture. Because the physical geometry of the core-shell sensor remains static across different incident wavelengths, the computationally expensive tasks of mesh generation, function space allocation, and Degree of Freedom (DOF) mapping are executed only once. As the solver iterates through the optical spectrum, it dynamically recalculates continuous cubic spline functions to update the dispersive gold permittivity ($\epsilon_{\text{Au}}$) and the free-space wavenumber ($k_0$). This dynamic array reassignment allows the UFL form compiler to update the global stiffness matrix and load vector without triggering a costly remeshing protocol.
 
 \vspace{12pt}
 
-To rigorously quantify the solver's fidelity, a global error analysis is employed using the relative $L_2(\Omega)$ norm, defined as:
-\begin{equation}
-\text{Error} = \frac{\| \bm{E}_{\text{num}} - \bm{E}_{\text{ana}} \|_{L^2(\Omega)}}{\| \bm{E}_{\text{ana}} \|_{L^2(\Omega)}}
-\label{eq:l2_error}
-\end{equation}
-This metric is selected because it aggregates discrepancies over the entire computational domain rather than at isolated points. \citet{Hsiao2002} emphasize that the $L_2$ norm provides a stable measure of convergence for finite element schemes involving scattering, as it effectively smooths out local singularities near sharp conducting edges that might otherwise skew $L_{\infty}$ (maximum norm) estimates. Furthermore, \citet{Melenk2024} demonstrate that minimizing this norm directly correlates to the stability of the wave-number explicit solution, ensuring that the numerical solution $\bm{E}_{\text{num}}$ strictly adheres to the continuity requirements of the underlying Hilbert space $H(\text{curl})$.
+\noindent\textbf{Phase 3: Linear System Resolution and HPC Workarounds}
+
+\vspace{6pt}
+
+The resulting algebraic system $\bm{A}\bm{x}=\bm{b}$ is characteristic of the frequency domain Helmholtz equation: sparse, complex-symmetric, and highly indefinite. Consequently, all three solver generations utilize a robust sparse direct solver (LU decomposition) provided by the MUMPS library via the PETSc backend to guarantee deterministic matrix inversion. Furthermore, to guarantee strict High-Performance Computing (HPC) stability for the biosensor model when partitioning the mesh across multiple CPU cores via the Message Passing Interface (MPI), the solver employs a deliberate physical approximation. Evaluating the scattering surface flux integral ($\oint d\Gamma$) along internal mesh facets introduces severe numerical instabilities under MPI. Because the 25 nm gold nanoparticle operates in the deep Rayleigh scattering regime where scattering is highly inefficient, the solver safely bypasses the explicit $C_{\text{sca}}$ calculation. The total optical extinction is approximated purely via volumetric absorption ($C_{\text{ext}} \approx C_{\text{abs}}$), preserving exact peak tracking without triggering MPI facet crashes.
 
 \vspace{12pt}
 
-The ultimate test of the solver's mathematical correctness is the verification of its convergence rate, which measures how rapidly the numerical error decays as the mesh density increases. In standard finite element theory, refining the mesh size $h$ (h-refinement) is expected to reduce the error according to a specific power law. \citet{Frelet2024} provide the sharpest theoretical bounds for this behavior, proving that for Nédélec edge elements of polynomial order $p$, the error in the asymptotic regime must satisfy the inequality $\|\bm{E} - \bm{E}_h\|_{H(\text{curl})} \le C h^p \|\bm{E}\|_{H^{p+1}}$. However, a critical aspect of validating high-frequency Helmholtz solvers is distinguishing between the asymptotic and pre-asymptotic regimes. \citet{Frelet2024} warn that in the pre-asymptotic phase—where the mesh is sufficiently fine to resolve the geometry but too coarse relative to the wavelength ($k h \not\ll 1$)—the ``pollution effect'' dominates the solution. In this unstable regime, numerical dispersion errors accumulate as the wave propagates across the domain, causing a significant phase drift between the computed and analytical waves. Consequently, simply refining the mesh in this phase may yield unpredictable results, characterized by error stagnation or even oscillatory behavior where a finer mesh paradoxically produces a higher error due to resonance shifts \citep{Melenk2024}.
+\noindent\textbf{Phase 4: Post-Processing and Inline Diagnostics}
 
-\vspace{12pt}
+\vspace{6pt}
 
-The solver is confirmed to have entered the stable asymptotic regime only once the mesh density satisfies the strict resolution threshold ($kh \ll 1$) required to suppress this dispersive accumulation. Once this threshold is crossed, the phase error becomes negligible, and the global error begins to decrease monotonically. To verify this transition, the validation process involves plotting the relative $L_2$ error against the inverse mesh size $1/h$ on a log-log scale. A linear slope emerging in the tail of this plot that matches the theoretical polynomial order $p$ (e.g., a slope of 3 for cubic elements) serves as the definitive mathematical proof that the implementation is free from ``locking'' effects and spurious modes, verifying that the discrete weak form has converged to the continuous physical reality as predicted by the stability theory of \citet{Hazard1996}.
+The final phase handles data extraction and algorithmic verification. Immediately following the matrix resolution, the solver processes the raw scattered electric field ($E_{\text{sc}}$). For the PEC benchmarks, the algorithm programmatically calls the analytical Mie series derived in Section~3.6 to compute the relative $L_2$ error norm inline, verifying the asymptotic convergence of the mesh. For the biosensor application, the algorithm extracts the total absorption cross-section to determine the LSPR peak shift. To computationally validate the sensor's evanescent field decay, the algorithmic pipeline executes an automated parametric sweep. The solver dynamically loops through varying physical thicknesses of the protein shell (from 2 nm to 40 nm), extracts the discrete redshift ($\Delta\lambda$) for each structural state, and applies a non-linear curve fit to an asymptotic exponential saturation model. This automated extraction of the theoretical decay length ($l_d$) provides a rigorous, code-driven validation of the solver's near field physics.

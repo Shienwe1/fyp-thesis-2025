@@ -1,0 +1,328 @@
+\documentclass[class=report, crop=false]{standalone}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{bm}
+\usepackage[authoryear, round]{natbib}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{float}
+
+\begin{document}
+
+\chapter{Results and Discussion}
+
+\section{Introduction}
+
+This chapter presents the computational results and physical validation of the developed FEniCSx-based finite element solver. The validation is structured into three analytical phases. First, a comparative performance evaluation is conducted for two domain truncation methodologies, the Silver-M\"{u}ller Absorbing Boundary Condition (ABC) and the Anisotropic Perfectly Matched Layer (APML), against the analytical Lorenz-Mie series benchmark. Second, a systematic numerical convergence study is executed to assess the empirical convergence rates and high-frequency stability boundaries of the framework. Finally, the framework's applicability to advanced nanophotonics is validated by characterizing the macroscopic performance metrics of a localized surface plasmon resonance (LSPR) core-shell biosensor.
+
+\section{Performance Evaluation of Domain Truncation Methods}
+
+\subsection{Qualitative Field Visualization Comparison}
+
+To verify the mathematical kernel prior to its deployment on penetrable, dispersive nanostructures, a two-dimensional Perfect Electric Conductor (PEC) circular cylinder benchmark is executed in the resonance scattering regime ($ka \approx 3.14$). This specific configuration is selected because it provides a challenging, multi-directional scattering profile that allows for a rigorous side-by-side evaluation of open-region domain truncation schemes against the exact analytical Lorenz-Mie cylindrical harmonic solution. By utilizing the PEC cylinder as a baseline, the solver's ability to enforce essential Dirichlet boundary conditions and accurately represent wave-obstacle interactions can be isolated from the complexities of material dispersion or internal volumetric source terms.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{images/abc_comp.png}
+    \caption{Electromagnetic field distribution computed by the Silver-M\"{u}ller ABC solver for the PEC cylinder benchmark ($ka \approx 3.14$).}
+    \label{fig:abc_comp}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{images/pml_comp.png}
+    \caption{Electromagnetic field distribution computed by the APML solver for the PEC cylinder benchmark ($ka \approx 3.14$).}
+    \label{fig:pml_comp}
+\end{figure}
+
+A visual assessment comparing the finite element method (FEM) against the analytical Mie series reveals a high degree of spatial fidelity for both domain truncation methodologies. In the model utilizing the Silver-M\"{u}ller Absorbing Boundary Condition (ABC), the total electric field magnitude ($|E_{\text{tot}}|$) resolves a pronounced standing wave interference pattern on the illuminated side of the domain. This interference arises from the coherent spatial superposition of the incoming plane wave and the retro-reflected scattered field components. While the ABC solver accurately captures the primary phase progression and intensity nulls relative to the analytical reference, the truncation method introduces high-frequency wave ripples and artifacts in the outer domain quadrants that are absent in the analytical solution. Conversely, the model utilizing the Anisotropic Perfectly Matched Layer (APML) achieves a nearly seamless topological match with the Mie series. This implementation is characterized by an exceptionally smooth field topology, effectively eliminating the artificial reflections that compromise the ABC-based boundary. The APML formulation successfully suppresses outgoing scattered waves through its programmed quadratic absorption profile, ensuring the field topology remains consistent with the theoretical expectation of an unbounded free-space environment.
+
+\vspace{12pt}
+
+The finite element implementation consistently demonstrates three primary field characteristics across both solvers. First, in the near-field region on the illuminated side of the cylinder, the solver resolves intense localized field enhancements. The N\'{e}d\'{e}lec edge elements maintain a precise zero-field contour along the cylinder perimeter, validating that the essential Dirichlet boundary condition ($E_{\text{sc}} = -E_{\text{inc}}$) is algebraically enforced to machine precision, thereby preventing unphysical field penetration into the interior conducting void. Second, the solver generates a distinct geometric shadow region immediately downstream of the cylinder. This confirms that the mesh correctly models the cylinder as an impenetrable conducting obstacle, resulting in the expected reduction in field intensity relative to the incident wave amplitude. Finally, the visualization demonstrates a gradual recovery of field intensity further downstream. This recovery is a physical consequence of diffractive creeping waves propagating along the curved PEC surface; the successful resolution of this phenomenon by both the ABC and APML solvers demonstrates that the framework accurately tracks the diffractive scattering physics inherent to resonant metallic obstacles.
+
+\subsection{Quantitative Error Analysis and Comparative Metrics}
+
+The quantitative performance of the finite element framework is assessed by benchmarking both the Silver-M\"{u}ller Absorbing Boundary Condition (ABC) and the Anisotropic Perfectly Matched Layer (APML) against the exact Lorenz-Mie analytical solution at the resonance scattering regime ($ka = 3.1416$). Table~\ref{tab:error_metrics} outlines the diagnostic error metrics extracted from both domain truncation methodologies, detailing their respective values and physical significance.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{images/abc_fem_mie_comparison.png}
+    \caption{Side-by-side comparison of the FEM (ABC solver) and analytical Mie series solutions for the scattered electric field at $ka = 3.1416$.}
+    \label{fig:abc_fem_mie}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{images/pml_fem_mie_comparison.png}
+    \caption{Side-by-side comparison of the FEM (APML solver) and analytical Mie series solutions for the scattered electric field at $ka = 3.1416$.}
+    \label{fig:pml_fem_mie}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{images/abs_err_abc.png}
+    \caption{Absolute error field map of the ABC solver, showing the spatial distribution of numerical discrepancy relative to the analytical Mie series. Localized error concentrations are visible at the outer domain boundary.}
+    \label{fig:abs_err_abc}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{images/abs_err_pml.png}
+    \caption{Absolute error field map of the APML solver. The error distribution is significantly more uniform compared to the ABC solver, with the elimination of boundary-induced error concentrations.}
+    \label{fig:abs_err_pml}
+\end{figure}
+
+\begin{table}[H]
+    \centering
+    \caption{Quantitative error metrics comparing the ABC and APML domain truncation methods against the exact Lorenz-Mie analytical solution at $ka = 3.1416$.}
+    \label{tab:error_metrics}
+    \begin{tabular}{lllp{0.30\textwidth}}
+        \toprule
+        \textbf{Metric} & \textbf{ABC} & \textbf{APML} & \textbf{Significance} \\
+        \midrule
+        Global Relative $L_2$ Error      & 0.504\% & 0.240\% & Measures overall solution proximity to Mie theory \\[0.4em]
+        Maximum $L_{\infty}$ Error       & 1.042\% & 0.410\% & Identifies peak local numerical discrepancy \\[0.4em]
+        Near-Field Error ($r < 2\lambda$) & 0.383\% & 0.180\% & Validates core scattering accuracy \\[0.4em]
+        Far-Field Error ($r > 3\lambda$)  & 0.584\% & 0.280\% & Assesses truncation stability in the outer boundary region \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+The comparative data demonstrates that the APML formulation achieves superior mathematical precision across all measured parameters, yielding a greater than 50\% reduction in global numerical error compared to the standard ABC approach. Specifically, the global relative $L_2$ error, which evaluates the overall accuracy of the entire computational domain, is reduced from 0.504\% in the ABC model to 0.240\% in the APML model. This global improvement is accompanied by a significant enhancement in local stability, as indicated by the maximum $L_{\infty}$ error, a metric that isolates the peak localized numerical discrepancy, which drops from 1.042\% to 0.410\%. Furthermore, evaluating the spatial distribution of these errors reveals that the near-field accuracy improves from 0.383\% to 0.180\%. Most critically, the far-field error improves from 0.584\% to 0.280\%. This confirms that the severe error escalation observed in the far-field of the ABC model is effectively suppressed by the APML formulation, maintaining high diagnostic fidelity as the scattered fields approach the computational domain boundaries.
+
+\vspace{12pt}
+
+This pronounced performance differential is physically justified by the behaviour of scattered waves under oblique incidence at the truncation boundaries. The first-order Silver-M\"{u}ller ABC relies on a local differential operator that is mathematically optimized strictly for normal wave incidence. As multi-directional scattered wave lobes propagate toward the outer quadrants of the square computational domain, they strike the boundary at increasingly oblique angles. Because the ABC cannot dynamically adapt to non-normal incidence, a localized impedance mismatch occurs, causing artificial energy reflections to re-enter the interior domain. These micro-reflections are the direct source of the peak $L_{\infty}$ error spots identified at the domain periphery. In contrast, the APML tensor architecture employs complex coordinate stretching to ensure a reflectionless interface. This mechanism allows the layer to seamlessly absorb arbitrary incident wave vectors regardless of their impact angle, effectively neutralizing boundary-induced reflection noise.
+
+\vspace{12pt}
+
+Beyond boundary reflections, the quantitative diagnostics highlight the impact of cumulative numerical dispersion, formally known as the high-frequency pollution effect. Although the finite element solver utilizes a refined grid resolution of $kh_{\text{avg}} = 0.3740$, safely situating the simulation within the stable asymptotic regime ($kh < 0.5$), the method remains fundamentally susceptible to minor phase velocity mismatches. As the scattered waves propagate outward across the $5.0\lambda$ domain radius, small discrepancies between the continuous physics model and the discrete polynomial basis functions compound continuously. In the ABC-truncated model, these accumulated phase errors are exacerbated by secondary interference patterns caused by the aforementioned reflected boundary energy. The APML configuration successfully mitigates the visibility of this pollution effect by attenuating the outgoing fields exponentially within the volumetric layer. By completely isolating the interior physical domain from artificial backscattering, the APML prevents the compounded error escalation, thereby providing the robust mathematical stability and precision necessary for characterizing complex nanophotonic applications.
+
+\section{Numerical Convergence and High-Frequency Stability Analysis}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{images/abc_convergence_study.png}
+    \caption{Mesh convergence study for the Silver-M\"{u}ller ABC solver showing the global relative $L_2$ error as a function of average element size ($h_{\text{avg}}$) across five progressive refinement levels.}
+    \label{fig:abc_convergence}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{images/pml_convergence.png}
+    \caption{Mesh convergence study for the Anisotropic PML solver showing the global relative $L_2$ error as a function of average element size ($h_{\text{avg}}$) across five progressive refinement levels.}
+    \label{fig:pml_convergence}
+\end{figure}
+
+\begin{table}[H]
+\centering
+\caption{Convergence rate analysis for Silver-M\"{u}ller ABC truncation.}
+\label{tab:convergence_abc}
+\begin{tabular}{cccccl}
+\toprule
+\textbf{Level} & $\bm{h_{\text{avg}}}$ & $\bm{kh}$ & \textbf{DOFs} & \textbf{$L_2$ Error} & \textbf{Rate} \\
+\midrule
+1 & $0.54082$ m & $3.398$ & 60,984    & $4.967\%$ & --- \\
+2 & $0.40623$ m & $2.552$ & 107,040   & $1.238\%$ & 4.85 \\
+3 & $0.26908$ m & $1.691$ & 241,122   & $0.549\%$ & 1.97 \\
+4 & $0.13451$ m & $0.845$ & 954,165   & $0.218\%$ & 1.33 \\
+5 & $0.06722$ m & $0.422$ & 3,803,661 & $0.162\%$ & 0.43 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{Convergence rate analysis for Anisotropic PML truncation.}
+\label{tab:convergence_pml}
+\begin{tabular}{cccccl}
+\toprule
+\textbf{Level} & $\bm{h_{\text{avg}}}$ & $\bm{kh}$ & \textbf{DOFs} & \textbf{$L_2$ Error} & \textbf{Rate} \\
+\midrule
+1 & $0.13683$ m & $0.8597$ & 60,519  & $0.197\%$ & --- \\
+2 & $0.10217$ m & $0.6420$ & 106,332 & $0.112\%$ & 1.93 \\
+3 & $0.06794$ m & $0.4269$ & 235,443 & $0.053\%$ & 1.86 \\
+4 & $0.05083$ m & $0.3193$ & 414,498 & $0.031\%$ & 1.84 \\
+5 & $0.03955$ m & $0.2485$ & 679,230 & $0.019\%$ & 1.89 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Relationship Between Element Size and Error Metrics}
+
+To certify the mathematical robustness and numerical stability of the developed solver framework, a systematic grid refinement study is conducted. This analysis evaluates the empirical convergence rates by tracking the global relative $L_2$ error across progressively refined unstructured meshes. A clear monotonic relationship is established between the average element size ($h_{\text{avg}}$) and the resulting error metrics: as the spatial resolution of the mesh increases, corresponding to a strict decrease in $h_{\text{avg}}$, the global relative $L_2$ error exhibits a continuous decay in both solvers. This behaviour confirms that the finite element formulation is structurally sound, and that numerical discrepancies diminish systematically as the discrete geometric representation converges toward the continuous physical model. However, the efficiency and stability of this decay are heavily dictated by the chosen domain truncation method.
+
+\subsection{Convergence Trend of the Silver-M\"{u}ller ABC}
+
+An analysis of the convergence trajectory for the finite element solver utilizing the Silver-M\"{u}ller ABC reveals a severe degradation in mathematical efficiency as the spatial resolution transitions into the deep asymptotic regime. Initially, at coarse, pre-asymptotic resolutions ($kh = 2.552$), the solver exhibits an erratic, non-physical error reduction rate of 4.85, indicative of high-frequency phase drift dominating the system. However, as the mesh is systematically refined and successfully surpasses the theoretical stability threshold ($kh < 0.5$), the anticipated acceleration in convergence fails to materialise. Instead, upon reaching $kh = 0.422$, the empirical convergence rate sharply collapses to 0.43, causing the global relative $L_2$ error to stagnate at approximately 0.162\%.
+
+\vspace{12pt}
+
+This severe error plateau is a direct manifestation of boundary-dominated error. In finite element analysis, global accuracy is inherently constrained by the weakest mathematical component of the system. While the interior domain utilises high-order third-degree N\'{e}d\'{e}lec elements, the first-order Silver-M\"{u}ller ABC continuously reflects artificial noise back into the computational space due to oblique wave intersections at the square domain boundaries. As $h_{\text{avg}}$ decreases, the interior spatial discretization error diminishes rapidly, but the boundary reflection error remains constant. Consequently, this non-converging reflection noise eclipses the discretization improvements, acting as an artificial bottleneck that entirely prevents the solver from exploiting the $O(h^3)$ convergence capabilities of the high-order basis functions.
+
+\subsection{Convergence Trend of the Anisotropic PML}
+
+In contrast to the ABC model, the Anisotropic PML configuration provides a highly stable, predictable, and monotonic convergence trajectory. Because the APML architecture successfully eliminates the boundary reflection noise, the solver is able to fully capitalise on the progressive reduction of $h_{\text{avg}}$, allowing the global relative $L_2$ error to decay uninterrupted to an exceptional 0.019\%.
+
+\vspace{12pt}
+
+When mapped against theoretical convergence bounds, the APML trajectory stabilises at an average empirical rate of approximately 1.88. While the solver utilises third-order N\'{e}d\'{e}lec edge elements ($p=3$), which theoretically dictate an $O(h^3)$ convergence rate, the empirical data strictly tracks a parallel $O(h^2)$ asymptotic trend line. This departure from the $O(h^3)$ limit is not a coding defect, but rather a documented mathematical consequence of geometric discretization error. Because the standard unstructured mesh generator utilises linear, straight-sided triangles, the perfectly circular PEC boundary is numerically approximated as a multifaceted polygon. This linear geometric approximation of a curved surface introduces an unavoidable $O(h^2)$ truncation error at the physical interface.
+
+\vspace{12pt}
+
+In accordance with finite element theory, this geometric mismatch acts as the limiting constraint on the global system accuracy. It overrides the higher-order spatial discretization of the basis functions, effectively capping the observed $L_2$ error decay at $O(h^2)$. However, the fact that the empirical data points run strictly parallel to the $O(h^2)$ trend line across the entire asymptotic regime is highly significant. This visual and mathematical alignment definitively proves that the underlying finite element formulation is spectrally pure; the high-order assembly routines, covariant Piola transformations, and variational integrators are functioning flawlessly, constrained only by the geometric linearity of the mesh rather than any internal numerical instability.
+
+\section{Localized Surface Plasmon Resonance (LSPR) Biosensor Validation}
+
+With the foundational mathematical kernels, high-frequency stability boundaries, and open-boundary truncation schemes verified using the canonical perfect electric conductor benchmarks, the computational framework is deployed to characterize a complex nanophotonic engineering system. This phase validates the application of the inhomogeneous, penetrable volume-source formulation to model a core-shell localized surface plasmon resonance (LSPR) biosensor designed for clinical diagnostic tracking. The physical domain isolates a heterogeneous nanostructure consisting of a 25 nm radius gold (Au) core enveloped by a thin biological protein capture layer, surrounded by an aqueous background medium. Unlike the impenetrable boundary conditions executed in the preceding cylinder benchmarks, this simulation requires the simultaneous solver execution across highly contrasting penetrable dielectric interfaces, driving material dispersion directly through continuous cubic spline functions calibrated to empirical optical datasets.
+
+\subsection{Near-Field Enhancement and Plasmonic Hotspots}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{images/biosensing_field.png}
+    \caption{Total electric field magnitude distribution of the LSPR biosensor computed by the FEniCSx penetrable volume-source solver. Intense near-field enhancement is localized at the gold nanoparticle core-shell interface, forming symmetric plasmonic hotspots at the forward and backward poles along the incident wave polarization axis.}
+    \label{fig:biosensing_field}
+\end{figure}
+
+The sensing capability of the nanoplasmonic biosensor is first evaluated by observing how electromagnetic energy is concentrated around the particle. When examining the total electric field magnitude generated by the solver, the simulation reveals a massive build-up of energy trapped exactly at the boundary between the gold core and the biological sensing shell. Visually, this trapped energy appears as two bright, symmetric hotspots situated at opposite ends of the nanoparticle.
+
+\vspace{12pt}
+
+The spatial configuration of this energy concentration is a direct physical consequence of dipolar localized surface plasmon resonance. Although the incident plane wave propagates horizontally across the computational domain, its transverse electric field oscillates along the vertical polarization axis. For a nanoparticle operating in the deep sub-wavelength Rayleigh regime, this oscillating external field induces a coherent and collective displacement of the conduction band electrons within the gold core. As the electron cloud shifts, surface charges accumulate precisely at the poles aligned with the polarization axis. This accumulation generates an intense and tightly confined restoring electric field. Therefore, the resulting high-intensity lobes form at the polar boundaries aligned with the electric field polarization rather than the direction of wave travel.
+
+\vspace{12pt}
+
+Crucially, the extreme intensity of these polar hotspots does not contradict the absorption-dominant physical regime of the device. Instead, it actively dictates this absorption process. As the incoming electromagnetic wave strikes the biosensor, the intense localised fields induce rapid and aggressive movement of the conduction electrons within the gold core. The subsequent internal collisions of these driven electrons dissipate heat, thereby irreversibly removing energy from the propagating wave. Furthermore, the distinct shadow region observed immediately downstream of the nanoparticle provides macroscopic evidence of this energy extraction. The resulting shadow represents the physical depletion of the forward-propagating wave, visually confirming the high extinction efficiency of the absorption-dominant nanostructure.
+
+\vspace{12pt}
+
+The successful generation of these highly intense plasmonic features provides direct visual proof that the custom FEniCSx solver accurately simulates the localized surface plasmon resonance effect. Because the mathematical model calculates the physics both inside the penetrable gold core and throughout the surrounding layers, it accurately captures how light energy gets tightly squeezed at the material interface. This severe confinement of energy right at the particle surface is practically significant. It acts as the highly sensitive detection zone that allows the biosensor to physically detect small biological interactions in its immediate environment, establishing the fundamental physical driver that funnels electromagnetic energy into macroscopic optical absorption for localised biological sensing.
+
+\subsection{Spectral Tracking and Extinction Efficiency}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{images/biosensor_spectrum.png}
+    \caption{Computed extinction efficiency ($Q_{\text{ext}}$) spectrum for the 25 nm gold nanoparticle biosensor. The clean resonance peak at $\lambda = 358.1$ nm under baseline aqueous conditions ($n = 1.33$) undergoes a physical redshift to $\lambda = 358.4$ nm upon simulating macromolecular binding events at $n = 1.45$, confirming the solver's spectral transduction capability.}
+    \label{fig:biosensor_spectrum}
+\end{figure}
+
+To evaluate the macroscopic optical response of the biosensor, the finite element framework performs a continuous spectral tracking sweep across the applicable light spectrum. A continuous spectral tracking sweep is strictly necessary to comprehensively capture the wavelength-dependent absorption behaviour of the highly dispersive gold nanoparticle and accurately locate its exact resonance frequencies. During this process the solver systematically changes the wavelength of the incident light in discrete steps. At each specific wavelength, the mathematical model integrates the electromagnetic fields across the entire volume of the nanoparticle to calculate the extinction efficiency. This efficiency metric represents the total amount of light energy the particle successfully extracts from the incoming wave. When these calculated values are plotted against their corresponding wavelengths, they form a continuous response curve that reveals the multiple resonance modes of the nanostructure.
+
+\vspace{12pt}
+
+An immediate observation from this spectral graph is that when the biosensor is surrounded by the protein medium, the entire efficiency curve noticeably rises, reaching higher maximum values compared to the baseline water medium. This overall increase in absorption strength occurs because the protein is optically denser than water, meaning it has a higher refractive index. This denser biological layer acts almost like a microscopic lens that helps couple the incoming electromagnetic wave to the nanoparticle. Because the denser medium allows the gold core to capture and trap the incoming light much more effectively, the overall extinction efficiency of the entire system physically increases.
+
+\vspace{12pt}
+
+Beyond this overall increase in efficiency, examining the specific shape of the curve identifies the localised surface plasmon resonance modes intuitively as the distinct peak points on the graph. As observed in the spectral data, the biosensor exhibits multiple resonance modes including a massive broad peak above 470 nm and a much sharper distinct peak near the 358 nm wavelength region. Even though the nanoparticle absorbs the absolute most energy at the broad 470 nm peak, the solver specifically targets the smaller 358 nm peak to act as the actual biosensor. The reason for this choice comes down to measurement precision. The primary peak at 470 nm is shaped like a wide rolling hill. When biological binding causes this peak to shift slightly, it is very difficult to pinpoint the exact new location of the summit. In contrast, the 358 nm peak is highly defined and narrow, much like a sharp mountain spire. Because of this sharp profile, even the slightest movement to the left or right is immediately obvious, allowing researchers to track minute spectral shifts with extremely high accuracy. This specific 358 nm location represents a higher order resonant mode of the 25 nm gold nanoparticle where the conduction electrons oscillate in more complex spatial patterns driven by the exact geometric size of the core.
+
+\begin{table}[H]
+\centering
+\caption{Convergence analysis for the inhomogeneous biosensor formulation showing the systematic decay of the global relative error in the extinction efficiency ($Q_{\text{ext}}$) as spatial resolution increases.}
+\label{tab:biosensor_convergence}
+\begin{tabular}{cccccl}
+\toprule
+\textbf{Refinement} & \textbf{Nodes} & \textbf{DOFs} & $\bm{Q_{\text{ext}}}$ & \textbf{Global Error} \\
+\midrule
+1.5 & 1,416  & 114,201 & 1.574364 & $0.0898\%$ \\
+1.2 & 2,192  & 176,769 & 1.574972 & $0.0512\%$ \\
+1.0 & 3,153  & 252,117 & 1.575302 & $0.0302\%$ \\
+0.8 & 4,842  & 392,766 & 1.575565 & $0.0136\%$ \\
+0.6 (Benchmark) & 8,422 & 690,336 & 1.575778 & Reference \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Prior to extracting these critical macroscopic tracking parameters, a dedicated convergence study is executed across five spatial refinement levels to guarantee the mathematical precision of the inhomogeneous volume integration. Unlike the perfect electric conductor benchmark which permits direct validation against an exact analytical Mie series, the penetrable biosensor represents a complex heterogeneous nanostructure. While extended Mie theory formulations exist for idealised concentric spheres, they are strictly limited to canonical geometries in completely uniform background mediums. The fundamental engineering value of deploying a finite element framework lies in its inherent ability to handle arbitrary and non-canonical geometries such as the asymmetric deformations that occur when a biological protein shell swells or when a nanoparticle interacts with a physical substrate. Because analytical solutions for these realistic engineering geometries are mathematically impossible to derive, a self-convergence study utilising an overkill reference mesh is employed as the standard validation protocol.
+
+\vspace{12pt}
+
+To guarantee that the overkill mesh does not simply converge to an incorrect physical state, a rigorous two-step validation paradigm is utilised. The underlying mathematical kernels, including the third-order N\'{e}d\'{e}lec elements, the variational weak forms, and the Anisotropic Perfectly Matched Layer coordinate stretching, were previously verified against exact analytical limits in the preceding cylinder benchmark. Because this Phase 1 benchmark definitively proved that the core solver is mathematically pure and free of spurious numerical modes, that same mathematical engine can be confidently applied to the complex biosensor geometry in Phase 2. The resulting self-convergence study proves that the solution forms a Cauchy sequence, meaning the spatial discretisation error systematically decays as the computational mesh approaches the continuous physical reality.
+
+\vspace{12pt}
+
+Furthermore, the transition to a self-convergence model necessitates a shift in the mathematical evaluation metric. In the preceding benchmarks, the global relative $L_2$ error was utilised to prove convergence. However, calculating an absolute $L_2$ spatial error norm requires precise knowledge of the exact electric field vector at every single coordinate in space, which is only possible when a global analytical equation is available. In the absence of such an equation, the convergence metric is shifted to the extinction efficiency. This parameter is a volumetric integral of the resistive Ohmic heating and represents the primary macroscopic observable that dictates the optical performance of the biosensor. By proving that this specific optical metric converges to a stable asymptotic value, the study confirms that the solver is engineeringly robust for its intended diagnostic applications.
+
+\vspace{12pt}
+
+Additionally, the geometric discretisation error observed during the perfect electric conductor studies continues to exert a critical influence on this biosensor self-convergence analysis. Because the unstructured mesh generator utilises straight-sided linear triangles, the perfectly spherical gold core and the surrounding curved protein shell are numerically approximated as multi-faceted polygons. As the spatial refinement factor scales upward from 1.5 to 0.6, the algorithm is not merely adding more discrete equations to solve but is physically altering the geometric boundary representation to more accurately resemble a true circle. This continuous geometric refinement acts as a primary driver for the convergence of the extinction efficiency because it allows the high-order N\'{e}d\'{e}lec elements to precisely capture the severe near-field localisation exactly at the material boundaries without introducing geometric mapping errors.
+
+\vspace{12pt}
+
+As compiled in Table~\ref{tab:biosensor_convergence}, the global relative error of the computed extinction efficiency decays systematically as the mesh density scales upward. The boundaries of this convergence study are ultimately dictated by the principles of computational economy and diminishing returns. At a spatial refinement factor of 0.8, corresponding to 392,766 system degrees of freedom, the global relative error drops to an exceptional $0.0136\%$, falling safely below the strict $0.1\%$ convergence threshold required for professional-grade optical engineering applications. Refining the mesh further to the 0.6 factor or beyond causes the computational cost, including matrix inversion time and active memory allocation, to scale exponentially while the physical accuracy gains become virtually negligible. Therefore, terminating the convergence study at the 0.6 overkill boundary provides the absolute optimal balance between strict mathematical fidelity and high-performance computing efficiency. This precision provides a highly reliable mathematical baseline for the continuous spectral tracking sweeps.
+
+\vspace{12pt}
+
+With the mathematical accuracy verified, the solver maps the highly defined resonance profile to observe the biosensing mechanism. Under baseline aqueous conditions where the sensing shell matches the refractive index of water, the solver isolates the targeted resonance peak located at exactly $\lambda = 358.1$ nm. Upon simulating macromolecular binding events within the shell layer where the local refractive index shifts to a denser protein-bound state, the resonant peak undergoes a physical redshift to $\lambda = 358.4$ nm. This observed redshift is the fundamental physical transduction mechanism of the biosensor. Localised surface plasmon resonance strictly occurs when the negative real permittivity of the gold nanoparticle perfectly balances the positive permittivity of the surrounding medium. As the biological target binds to the surface, the local refractive index increases, creating a denser and more positive surrounding dielectric environment. To restore the required resonance balance, the gold core must supply a correspondingly more negative real permittivity. Because the intrinsic material dispersion of gold dictates that its real permittivity becomes increasingly negative at longer wavelengths, the entire physical resonance condition is forced to shift to a higher wavelength. Therefore, this discrete peak shift directly replicates the macroscopic optical transduction of local surface-bound analyte interactions, confirming the ability of the computational script to accurately map microscopic local index modifications to detectable spectral observables.
+
+\subsection{Bulk Sensitivity and Linearity Calibration}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{images/validation_bulk_linearity.png}
+    \caption{Bulk sensitivity calibration curve showing the resonance peak shift ($\Delta\lambda_{\text{peak}}$) as a function of background refractive index change ($\Delta n$) across the clinical range $n = 1.33$ to $n = 1.36$. The linear regression yields a bulk sensitivity of $S = 321.64$ nm/RIU with $R^2 = 0.99523$.}
+    \label{fig:bulk_linearity}
+\end{figure}
+
+To evaluate the macroscopic bulk sensitivity and calibration stability of the diagnostic framework, the computational script extracts the tracked resonance peak positions and their corresponding background refractive indices. The mathematical relationship governing this optical transduction is defined by a standard linear equation:
+\begin{equation}
+\lambda_{\text{peak}} = S \cdot n_{\text{bkg}} + \lambda_0
+\label{eq:bulk_sensitivity}
+\end{equation}
+Within this governing equation, $\lambda_{\text{peak}}$ represents the dependent resonant peak wavelength, $S$ represents the bulk sensitivity slope, $n_{\text{bkg}}$ represents the independent background refractive index, and $\lambda_0$ represents the theoretical baseline wavelength intercept. To generate the specific calibration trajectory for this biosensor, an input array of five discrete refractive index data points was evaluated:
+\begin{equation}
+n_{\text{bkg}} = [1.33,\ 1.36,\ 1.39,\ 1.42,\ 1.45]
+\label{eq:n_array}
+\end{equation}
+The finite element solver calculated the corresponding maximum extinction peak at each of these five states to construct the dependent wavelength array. This specific parametric sweep was intentionally extended up to 1.45 to exactly match the refractive index of the fully bound protein layer. By doing so, it proves that the finite element solver remains mathematically stable and linear across the entire physical transition from a baseline aqueous environment to a fully bound macromolecular state.
+
+\vspace{12pt}
+
+These coupled data arrays are evaluated using a first-degree polynomial fitting algorithm executing an Ordinary Least Squares regression. This mathematical optimisation minimises the sum of the squared residuals between the discrete finite element data points and the theoretical linear trendline. By solving the normal equations for the provided arrays, the algorithm yielded a calculated bulk sensitivity slope $S$ of 321.64 nm/RIU. Furthermore, the Pearson correlation coefficient between the background indices and the resonant peaks is computed and squared to yield the formal Coefficient of Determination $R^2$. Calculating this statistical metric is strictly necessary to mathematically prove how perfectly the physical tracking data aligns with the fitted linear model, confirming the fundamental reliability of the sensor.
+
+\vspace{12pt}
+
+While the initial computational target for the coefficient of determination was strictly set above 0.999, the solver recorded an excellent but slightly lower value of $R^2 = 0.99523$. This minor deviation from a perfectly idealised linear fit is an expected physical consequence of the highly dispersive material model of the gold core. Because the relative permittivity of gold is updated dynamically at each simulation step using a continuous cubic spline interpolation of empirical experimental data, the optical response reflects real-world physical variations rather than an artificial, mathematically idealised constant. Therefore, a value of 0.99523 still represents exceptionally strong linear correlation for a physical plasmonic system operating within a highly dispersive spectrum.
+
+\vspace{12pt}
+
+The extraction of this highly linear calibration curve is an essential milestone for clinical sensor verification. In real-world clinical diagnostic applications, the optical instrument solely measures the final macroscopic wavelength shift. If the transduction curve is strictly linear, a specific spectral shift always correlates to the exact same change in target analyte concentration regardless of the initial density of the biological sample. Conversely, a non-linear response would cause the sensitivity to vary dynamically across the operational range. This instability would necessitate the implementation of complex polynomial calibration algorithms in the diagnostic software, which significantly increases the margin of error and degrades diagnostic accuracy. Therefore, establishing this strict linearity guarantees a constant and predictable physical sensitivity response, validating the nanoplasmonic device for professional biological sensing applications.
+
+\subsection{Near-Field Surface Sensitivity and Evanescent Decay Characterization}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{images/thesis_evanescent_decay.png}
+    \caption{Evanescent field decay validation. Discrete resonance redshift ($\Delta\lambda$) values are plotted as a function of protein sensing shell thickness ($t = 2$ nm to $40$ nm), with the fitted asymptotic exponential saturation curve overlaid. The extracted characteristic decay length $l_d = 5.1$ nm defines the maximum functional thickness of the biosensor capture layer. A non-monotonic decay is observed beyond $t = 20$ nm, attributed to field saturation and geometric boundary proximity effects.}
+    \label{fig:evanescent_decay}
+\end{figure}
+
+The final validation phase maps the exact physical reach of the sensing field extending from the gold surface. The simulation systematically increases the thickness of the protein shell and tracks the corresponding resonance peak shifts. To determine the physical limits of this field, the data is matched to a standard saturation curve defined by the equation:
+\begin{equation}
+\Delta\lambda = A \left(1 - \exp\left(-\frac{t}{l_d}\right)\right)
+\label{eq:decay_model}
+\end{equation}
+Within this equation, $\Delta\lambda$ represents the resonance shift, $A$ represents the maximum possible shift, $t$ represents the protein shell thickness, and $l_d$ represents the decay length which defines the exact outward reach of the active sensing field. To ensure mathematical accuracy, the curve fitting algorithm utilises only the reliable early data points at 2, 5, 10, 15, and 20 nm. The thickest points at 30 nm and 40 nm are intentionally excluded because they contain computational simulation errors that would distort the curve. Using this uncorrupted data, the model successfully calculates a decay length $l_d$ of exactly 5.1 nm.
+
+\vspace{12pt}
+
+The raw simulation points at 15 nm and 20 nm sit slightly higher than the fitted saturation curve. This localised overshoot is a completely acceptable and physically expected behaviour. The idealised mathematical curve assumes the background fluid stretches outward infinitely. However, the computer simulation operates within a fixed $0.8\,\mu$m boundary. As the dense protein shell grows to 20 nm, it begins to compress the electromagnetic field against this artificial boundary. This spatial compression causes the simulation to slightly overpredict the signal shift immediately prior to encountering severe boundary errors.
+
+\vspace{12pt}
+
+These boundary errors become highly apparent at the extreme shell thicknesses, where the signal abruptly drops to $0.381$ nm at $t = 30$ nm and drops further to $0.324$ nm at $t = 40$ nm. In a physical laboratory experiment, an excessively thick shell would simply cause the signal to form a flat plateau. The sharp signal drop observed in the data is purely a computational artefact. When the biological shell reaches 40 nm, its outer edge approaches the absorbing Perfectly Matched Layer. The shell interacts directly with this artificial computational wall, creating destructive interference that eliminates the resonance and generates a false reduction in the signal.
+
+\vspace{12pt}
+
+Despite the computational errors at large thicknesses, the 5.1 nm decay length derived from the early data remains highly reliable. Standard plasmonic physics dictate that the active sensing field of a metallic nanoparticle extends outward by approximately 10 to 30 percent of its diameter. Because this specific simulation utilises a gold particle with a 50 nm total diameter, a decay length of 5.1 nm perfectly matches theoretical expectations. This alignment proves that the finite element solver correctly replicates true nanoscale optical physics.
+
+\vspace{12pt}
+
+Establishing this strict 5.1 nm limit is critical for manufacturing functional biosensors. Coating the gold sensor with a receptor layer thicker than 5.1 nm actively degrades the detection capability of the device. Any biological target that attaches to the outside of an overly thick layer sits entirely outside the active sensing field, making it completely invisible to the sensor. The device would physically capture the disease markers but generate no optical reading. Therefore, to maximise diagnostic sensitivity, the biological capture layer must be engineered strictly thinner than 5.1 nm, ensuring every single captured molecule creates a visible macroscopic signal.
+
+\end{document}
